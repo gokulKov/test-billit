@@ -1,0 +1,106 @@
+/* Simple dark UI to match provided screenshots */
+:root {
+  --bg: #0f172a; /* slate-900 */
+  --bg-2: #111827; /* gray-900 */
+  --card: #111827;
+  --muted: #9ca3af;
+  --text: #E5E7EB;
+  --accent: #3B82F6; /* blue-500 */
+  --accent-2: #4F46E5; /* indigo-600 */
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.app {
+  display: flex;
+  height: 100%;
+}
+.sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #0b1224 0%, #0f172a 100%);
+  padding: 20px 16px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.brand {
+  font-weight: 800;
+  font-size: 32px;
+  letter-spacing: 0.5px;
+}
+.nav {
+  margin-top: 24px;
+  display: grid;
+  gap: 10px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(63,94,251,0.14), rgba(70, 26, 238, 0.14));
+  border-color: rgba(99,102,241,0.35);
+}
+.nav-item .icon {
+  width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+}
+.lock { color: #facc15; font-size: 14px; margin-left: auto; }
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px 0 24px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 2px 0;
+}
+.header small { color: rgba(255,255,255,0.9); }
+
+.content {
+  padding: 20px 24px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+/* Auth */
+.auth {
+  max-width: 380px; margin: 64px auto; background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06);
+}
+label { display:block; margin-bottom: 4px; color: var(--muted); font-size: 14px; }
+input { width: 100%; background: #0b1020; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; color: var(--text); }
+button.btn { background: var(--accent); color: white; border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+button.btn.secondary { background: transparent; border: 1px solid rgba(255,255,255,0.12); }
+
+/* Utility */
+.row { display:flex; align-items:center; gap:10px; }
+.mt-2 { margin-top: 12px; }
+.mt-3 { margin-top: 16px; }
+.mt-4 { margin-top: 24px; }
+.text-danger { color: #ef4444; }

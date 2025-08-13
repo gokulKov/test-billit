@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String
+  email     String   @unique
+  phone     String?  @unique
+  password  String?
+  googleId  String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  address   String?  // ✅ New: User address
+  imageUrl  String?  // ✅ New: User profile image URL
+
+  productAccess  ProductAccess[]
+  subscription   Subscription?     @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String?
+  payments       Payment[]
+  logs           SubscriptionLog[] @relation("UserLogs") // 👈 Add this
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  userId    String
+  planId    String
+  product   String
+  status    String // ACTIVE, CANCELLED, EXPIRED
+  startDate DateTime @default(now())
+  endDate   DateTime? // ✅ Made nullable for basic plans
+  createdAt DateTime @default(now())
+
+  plan Plan              @relation(fields: [planId], references: [id])
+  User User[] // optional backref
+  logs SubscriptionLog[] @relation("SubscriptionLogs") // 👈 Add this
+}
+
+model SubscriptionLog {
+  id        String             @id @default(uuid())
+  userId    String
+  action    SubscriptionAction
+  message   String
+  metadata  Json?
+  createdAt DateTime           @default(now())
+
+  subscriptionId String?
+  paymentId      String?
+
+  user         User          @relation("UserLogs", fields: [userId], references: [id])
+  subscription Subscription? @relation("SubscriptionLogs", fields: [subscriptionId], references: [id])
+  payment      Payment?      @relation("PaymentLogs", fields: [paymentId], references: [id])
+}
+
+model Payment {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  amount    Decimal
+  status    PaymentStatus
+  createdAt DateTime      @default(now())
+
+  logs SubscriptionLog[] @relation("PaymentLogs") // 👈 Add this
+}
+
+model Plan {
+  id          String               @id @default(uuid())
+  name        String
+  price       Decimal
+  duration    SubscriptionDuration
+  branchLimit Int?
+
+  mongoPlanId     String? // maps to MongoDB plan _id
+  mongoCategoryId String? // maps to MongoDB category _id
+
+  subscriptions Subscription[]
+}
+
+model ProductAccess {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  product   ProductType
+  createdAt DateTime    @default(now())
+}
+
+enum ProductType {
+  BILLIT
+  SERVICE
+  SALES
+  FUTURE_PRODUCT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  QUEUED
+}
+
+enum SubscriptionAction {
+  PAYMENT_INITIATED
+  PAYMENT_FAILED
+  PAYMENT_COMPLETED
+  SUBSCRIPTION_STARTED
+  SUBSCRIPTION_EXPIRED
+  SUBSCRIPTION_CANCELLED
+}
+
+enum SubscriptionDuration {
+  MONTHLY
+  YEARLY
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}

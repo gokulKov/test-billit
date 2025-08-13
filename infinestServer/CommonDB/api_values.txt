@@ -1,0 +1,19 @@
+POST http://localhost:5000/signup
+
+{
+  "username": "john_doe",
+  "email": "johndoe@example.com",
+  "phone": "1234567890",
+  "password": "securePassword123",
+  "name": "John Doe"
+}
+
+
+
+POST http://localhost:5000/login
+
+{
+  "email": "johndoe@example.com",
+  "password": "securePassword123"
+}
+

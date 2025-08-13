@@ -1,0 +1,35 @@
+User-agent: *
+Allow: /
+
+# Important pages
+Allow: /pricing
+Allow: /login
+Allow: /signup
+Allow: /billit-login
+
+# Disallow private/admin areas
+Disallow: /admin-dashboard
+Disallow: /profile
+Disallow: /dashboard
+Disallow: /allrecord
+Disallow: /backup
+Disallow: /balanceamount
+Disallow: /mobilename
+Disallow: /product
+Disallow: /todayexpenses
+Disallow: /receipt
+
+# Disallow dynamic routes that require authentication
+Disallow: /callback
+Disallow: /api
+
+# Allow search engines to crawl static assets
+Allow: /images/
+Allow: /svg/
+Allow: /_next/static/
+
+# Sitemap location
+Sitemap: https://yourdomain.com/sitemap.xml
+
+# Crawl delay (optional)
+Crawl-delay: 1

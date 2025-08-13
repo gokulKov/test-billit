@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `productaccess` MODIFY `product` ENUM('BILLIT', 'SERVICE', 'SALES', 'ENTERPRISE', 'FUTURE_PRODUCT') NOT NULL;
