@@ -789,7 +789,7 @@ app.post("/get-user-sales-access", authenticateToken, async (req, res) => {
     const subscription = await prisma.subscription.findFirst({
       where: {
         userId: userId,
-        product: "SALES",
+        product: { in: ["SALES", "SERVICE"] }, // accept SERVICE for backward compatibility
         status: "ACTIVE"
       },
       select: {
@@ -886,6 +886,52 @@ app.post("/internal-verify-token", internalAuth, async (req, res) => {
   } catch (err) {
     console.error("JWT verification failed:", err.message);
     res.status(401).json({ valid: false, message: "Invalid token" });
+  }
+});
+
+// Internal: return plan info (including branchLimit) for a given mongoPlanId
+// Used by SalesServer's fetchBranchLimitByMongoPlanId helper
+app.post('/internal-plan-by-mongo-id', internalAuth, async (req, res) => {
+  const { mongoPlanId } = req.body || {};
+  if (!mongoPlanId) return res.status(400).json({ message: 'Missing mongoPlanId' });
+
+  try {
+    const plan = await prisma.plan.findFirst({
+      where: { mongoPlanId },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        duration: true,
+        branchLimit: true,
+        mongoPlanId: true,
+        mongoCategoryId: true
+      }
+    });
+
+    if (!plan) return res.status(404).json({ message: 'Plan not found' });
+
+    return res.json({ plan });
+  } catch (err) {
+    console.error('Internal plan lookup failed:', err.message || err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Public fallback: get plan by mongoPlanId (no internal auth). Prefer internal endpoint when possible.
+app.get('/plan/by-mongo/:mongoPlanId', async (req, res) => {
+  const mongoPlanId = req.params.mongoPlanId;
+  if (!mongoPlanId) return res.status(400).json({ message: 'Missing mongoPlanId' });
+  try {
+    const plan = await prisma.plan.findFirst({
+      where: { mongoPlanId },
+      select: { id: true, name: true, branchLimit: true, mongoPlanId: true }
+    });
+    if (!plan) return res.status(404).json({ message: 'Plan not found' });
+    return res.json({ plan });
+  } catch (err) {
+    console.error('Plan lookup (public) failed:', err.message || err);
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 

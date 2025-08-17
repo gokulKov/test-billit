@@ -9,7 +9,22 @@ POST http://localhost:5000/signup
 }
 
 
+          in admin protal add one nav item that name is" branch supply " this page logic is suppliy the product in our branches he click the nav item branch supply in top right insert the one button like supply stock i click that open the popp list the drop down for fetch to display the branches then i select the branch then  list my all in stock product in table in table add this input supply qty  and calculate the amount for backend product value how to calculate this product value like the one product selling price X one qty = one product value then select the productes then in top branch select add one box total supply value in this calculation is the selected product value total is total supply value then is click enter automatically add the product in that brach in stock nav item and list the product details like 
 
+          Product Name,	Brand	,Model	that one branch product Qty,	Selling Price,	Product Validity
+
+          that's all
+
+          and create complete track 
+          use the frontend logic in sales frontend and backend logic for salesserver user new db table
+
+
+
+
+
+
+
+create nav item in create branch this nav only show the  "mongoPlanId": "sales-premium", and gold and i insert the branch limt in db basic plan  show this and add lock icon and he not access for this page okay then next this page flow is the admin are create mulitpul branches first who one create branch that one person is admin he only create the branches okay the create branche input like branch name , address, phone number, email, password,confirm password, then enter all details click create that all data fetch to display in same in stock ui table design in create branch page 
 POST http://localhost:5000/login
 
 {
