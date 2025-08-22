@@ -1,10 +1,15 @@
 const mongoose = require('mongoose');
 
 const InStockItemSchema = new mongoose.Schema({
+  productNo: { type: String, default: '' },
   productName: { type: String, default: '' },
   brand: { type: String, default: '' },
   model: { type: String, default: '' },
   quantity: { type: Number, default: 1 },
+  // Preserve the original total quantity when the stock was added.
+  // This allows tracking how much was originally added vs how much has
+  // been transferred to branches (quantity may be decremented later).
+  totalQuantity: { type: Number, default: 1 },
   costPrice: { type: Number, default: 0 },
   sellingPrice: { type: Number, default: 0 },
   // Store as Date for calendar input; old string values remain readable in Mongo

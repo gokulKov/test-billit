@@ -25,6 +25,10 @@ function Sidebar({ active = 'bank', onSelect, planId, branchLimit, branchUser })
             <Item id="bank" label="Create Bank" icon={"🏦"} activeId={active} onClick={onSelect} />
             <Item id="bank-history" label="Bank History" icon={"📜"} activeId={active} onClick={onSelect} />
             <Item id="instock" label="In Stock" icon={"📦"} activeId={active} onClick={onSelect} />
+            <Item id="product-sales" label="Product Sales" icon={"🛍️"} activeId={active} onClick={onSelect} />
+            <Item id="sales-track" label="Sales Track" icon={"📊"} activeId={active} onClick={onSelect} />
+            <Item id="branch-expense" label="New Expense" icon={"💸"} activeId={active} onClick={onSelect} />
+          
           </>
         ) : (
           // Admin / seller view
@@ -43,6 +47,8 @@ function Sidebar({ active = 'bank', onSelect, planId, branchLimit, branchUser })
               activeId={active}
               onClick={onSelect}
             />
+              <Item id="branch-supply" label="Branch Supply" icon={"🚚"} activeId={active} onClick={onSelect} locked={!canUseBranch} />
+              <Item id="branch-supply-history" label="Branch Supply History" icon={"📋"} activeId={active} onClick={onSelect} locked={!canUseBranch} />
           </>
         )}
       </nav>

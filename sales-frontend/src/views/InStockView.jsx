@@ -7,7 +7,7 @@ function InStockView({ salesUrl, token }) {
   const [bankId, setBankId] = React.useState('');
   const [supplierAmount, setSupplierAmount] = React.useState('');
   const [items, setItems] = React.useState([
-    { productName: '', brand: '', model: '', quantity: 1, costPrice: '', sellingPrice: '', validity: '' }
+    { productNo: '', productName: '', brand: '', model: '', quantity: 1, costPrice: '', validity: '' }
   ]);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState('');
@@ -41,13 +41,13 @@ function InStockView({ salesUrl, token }) {
   const sumCost = items.reduce((s, it) => s + ((Number(it.costPrice) || 0) * (Number(it.quantity) || 1)), 0);
   const canSubmit = supplierId && bankId && Number(supplierAmount) === sumCost && items.every(it => it.productName);
 
-  const addRow = () => setItems(it => [...it, { productName: '', brand: '', model: '', quantity: 1, costPrice: '', sellingPrice: '', validity: '' }]);
+  const addRow = () => setItems(it => [...it, { productNo: '', productName: '', brand: '', model: '', quantity: 1, costPrice: '', validity: '' }]);
   const updateItem = (idx, field, value) => setItems(list => list.map((it, i) => i === idx ? { ...it, [field]: value } : it));
   const removeRow = (idx) => setItems(list => list.filter((_, i) => i !== idx));
 
   const resetModal = () => {
     setSupplierId(''); setBankId(''); setSupplierAmount('');
-    setItems([{ productName: '', brand: '', model: '', quantity: 1, costPrice: '', sellingPrice: '', validity: '' }]);
+  setItems([{ productNo: '', productName: '', brand: '', model: '', quantity: 1, costPrice: '', validity: '' }]);
     setError('');
   };
 
@@ -63,12 +63,12 @@ function InStockView({ salesUrl, token }) {
           bank_id: bankId,
           supplierAmount: Number(supplierAmount) || 0,
           items: items.map(it => ({
+            productNo: it.productNo || '',
             productName: it.productName,
             brand: it.brand,
             model: it.model,
             quantity: Number(it.quantity) || 1,
             costPrice: Number(it.costPrice) || 0,
-            sellingPrice: Number(it.sellingPrice) || 0,
             validity: it.validity,
           }))
         })
@@ -114,36 +114,50 @@ function InStockView({ salesUrl, token }) {
         ) : (
           <div className="table-scroll">
             <table className="pretty-table">
-              <thead>
-                <tr>
-                  <th>Supplier</th>
-                  <th>Product Name</th>
-                  <th>Brand</th>
-                  <th>Model</th>
-                  <th>Qty</th>
-                  <th>Cost Price</th>
-                  <th>Selling Price</th>
-                  <th>Product Validity</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.flatMap((e) => (
-                  (Array.isArray(e.items) ? e.items : []).map((it, idx) => (
-                    <tr key={`${e._id}-${idx}`}>
-                      <td><span className="cell-strong">{e.supplier_id?.supplierName || e.supplier_id?.agencyName || '-'}</span></td>
-                      <td>{it.productName || '-'}</td>
-                      <td>{it.brand || '-'}</td>
-                      <td>{it.model || '-'}</td>
-                      <td>{it.quantity ?? '-'}</td>
-                      <td>{it.costPrice ?? '-'}</td>
-                      <td>{it.sellingPrice ?? '-'}</td>
-                      <td>{it.validity ? new Date(it.validity).toLocaleDateString() : '-'}</td>
-                      <td>{new Date(e.createdAt).toLocaleString()}</td>
+                  <thead>
+                    <tr>
+                      <th>Supplier</th>
+                      <th>Product No</th>
+                      <th>Product Name</th>
+                      <th>Brand</th>
+                      <th>Model</th>
+                      <th>Qty</th>
+                      <th>Total Qty</th>
+                      <th>Cost Price</th>
+                      <th>Product Validity</th>
+                      <th>Product Date</th>
+                      <th>Created</th>
                     </tr>
-                  ))
-                ))}
-              </tbody>
+                  </thead>
+                  <tbody>
+                    {entries.flatMap((e) => (
+                        (Array.isArray(e.items) ? e.items : []).map((it, idx) => (
+                        <tr key={`${e._id}-${idx}`}>
+                          <td><span className="cell-strong">{e.supplier_id?.supplierName || e.supplier_id?.agencyName || '-'}</span></td>
+                          <td>{it.productNo || '-'}</td>
+                          <td>{it.productName || '-'}</td>
+                          <td>{it.brand || '-'}</td>
+                          <td>{it.model || '-'}</td>
+                          <td>{it.quantity ?? '-'}</td>
+                          <td>{it.totalQuantity ?? it.quantity ?? '-'}</td>
+                          {/* shippedQty = totalQuantity - current quantity (how much was transferred to branches) */}
+                          <td>{it.costPrice ?? '-'}</td>
+                          <td>{it.validity ? new Date(it.validity).toLocaleDateString() : '-'}</td>
+                          {/* Product Date: days in store (inclusive from createdAt to today) */}
+                          <td>{(() => {
+                              try {
+                                const created = new Date(e.createdAt);
+                                if (isNaN(created.getTime())) return '-';
+                                const msPerDay = 1000 * 60 * 60 * 24;
+                                const days = Math.floor((Date.now() - created.getTime()) / msPerDay) + 1;
+                                return `${days} day${days !== 1 ? 's' : ''}`;
+                              } catch (err) { return '-'; }
+                            })()}</td>
+                          <td>{new Date(e.createdAt).toLocaleString()}</td>
+                        </tr>
+                      ))
+                    ))}
+                  </tbody>
             </table>
           </div>
         )}
@@ -183,12 +197,12 @@ function InStockView({ salesUrl, token }) {
                 <table className="pretty-table">
                   <thead>
                     <tr>
+                      <th>Product No</th>
                       <th>Product Name</th>
                       <th>Brand</th>
                       <th>Model</th>
                       <th>Qty</th>
                       <th>Cost Price</th>
-                      <th>Selling Price</th>
                       <th>Product Validity</th>
                       <th></th>
                     </tr>
@@ -196,12 +210,12 @@ function InStockView({ salesUrl, token }) {
                   <tbody>
                     {items.map((it, idx) => (
                       <tr key={idx}>
+                        <td><input value={it.productNo} onChange={e=>updateItem(idx,'productNo',e.target.value)} placeholder="Product No (optional)" /></td>
                         <td><input value={it.productName} onChange={e=>updateItem(idx,'productName',e.target.value)} placeholder="Name" /></td>
                         <td><input value={it.brand} onChange={e=>updateItem(idx,'brand',e.target.value)} placeholder="Brand" /></td>
                         <td><input value={it.model} onChange={e=>updateItem(idx,'model',e.target.value)} placeholder="Model" /></td>
                         <td style={{maxWidth:140}}><input type="number" style={{width:'120px'}} value={it.quantity === undefined ? '' : it.quantity} onChange={e=>updateItem(idx,'quantity',e.target.value)} placeholder="1" /></td>
                         <td><input type="number" value={it.costPrice} onChange={e=>updateItem(idx,'costPrice',e.target.value)} placeholder="0" /></td>
-                        <td><input type="number" value={it.sellingPrice} onChange={e=>updateItem(idx,'sellingPrice',e.target.value)} placeholder="0" /></td>
                         <td><input type="date" value={it.validity} onChange={e=>updateItem(idx,'validity',e.target.value)} /></td>
                         <td><button className="btn secondary" type="button" onClick={()=>removeRow(idx)}>Remove</button></td>
                       </tr>

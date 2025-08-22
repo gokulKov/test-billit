@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
-const { createBranch, listBranches } = require('../controllers/branchController');
+const { createBranch, listBranches, toggleBranchAdmin } = require('../controllers/branchController');
 
 const auth = (req, res, next) => {
   try {
@@ -18,5 +18,6 @@ const auth = (req, res, next) => {
 
 router.get('/api/branches', auth, listBranches);
 router.post('/api/branches', auth, createBranch);
+router.patch('/api/branches/:id/toggle-admin', auth, toggleBranchAdmin);
 
 module.exports = router;

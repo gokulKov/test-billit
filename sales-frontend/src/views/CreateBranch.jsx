@@ -5,6 +5,7 @@ function CreateBranch({ salesUrl, token, planId }) {
   const [rows, setRows] = React.useState([]);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [togglingId, setTogglingId] = React.useState(null);
   const [page, setPage] = React.useState(1);
   const [pageSize] = React.useState(10);
 
@@ -58,6 +59,27 @@ function CreateBranch({ salesUrl, token, planId }) {
       setForm({ name: '', address: '', phoneNumber: '', email: '', password: '', confirmPassword: '' });
       await loadBranches();
     } catch (e) { setError(e.message); } finally { setSaving(false); }
+  };
+
+  const toggleAdmin = async (branchId) => {
+    try {
+      console.log('toggleAdmin clicked', branchId);
+      setError('');
+      setTogglingId(branchId);
+      const res = await fetch(`${salesUrl}/api/branches/${branchId}/toggle-admin`, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Toggle failed');
+      // refresh the list
+      await loadBranches();
+    } catch (e) {
+      console.error('toggleAdmin error', e);
+      setError(e.message || 'Toggle failed');
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   // pagination
@@ -142,7 +164,14 @@ function CreateBranch({ salesUrl, token, planId }) {
                     <td>{r.address || '-'}</td>
                     <td>{r.phoneNumber || '-'}</td>
                     <td>{r.email || '-'}</td>
-                    <td>{r.isAdmin ? 'Yes' : 'No'}</td>
+                    <td>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span>{r.isAdmin ? 'Yes' : 'No'}</span>
+                        <button className="btn secondary" type="button" aria-label={`Change admin for ${r.name || r._id}`} disabled={togglingId === r._id} onClick={() => toggleAdmin(r._id)}>
+                          {togglingId === r._id ? 'Changing…' : 'Change'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

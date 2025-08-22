@@ -188,6 +188,8 @@ function App() {
             ) : null
           ) : null}
 
+          
+
           {view === 'bank' ? (
             <CreateBank salesUrl={SALES_URL} token={effectiveToken} />
           ) : view === 'bank-history' ? (
@@ -208,6 +210,30 @@ function App() {
             )
           ) : view === 'branch-login' ? (
             <BranchLogin salesUrl={SALES_URL} />
+          ) : view === 'branch-supply' ? (
+            <BranchSupply salesUrl={SALES_URL} token={effectiveToken} />
+          ) : view === 'branch-supply-history' ? (
+            (window.BranchSupplyHistory ? React.createElement(window.BranchSupplyHistory, { salesUrl: SALES_URL, token: effectiveToken }) : (
+              <div className="card">
+                <div className="empty-state">
+                  <div className="empty-icon">📦</div>
+                  <div className="empty-title">Loading…</div>
+                  <div className="empty-sub">Branch Supply History component not loaded yet.</div>
+                </div>
+              </div>
+            ))
+          ) : view === 'branch-expense' ? (
+            (window.BranchNewExpense ? React.createElement(window.BranchNewExpense, { salesUrl: SALES_URL, token: effectiveToken }) : (
+              <div className="card"><div className="empty-state"><div className="empty-icon">💸</div><div className="empty-title">Loading…</div></div></div>
+            ))
+          ) : view === 'sales-track' ? (
+            (window.SalesTrack ? React.createElement(window.SalesTrack, { salesUrl: SALES_URL, token: effectiveToken }) : (
+              <div className="card"><div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">Loading…</div></div></div>
+            ))
+          ) : view === 'product-sales' ? (
+            (window.ProductSales ? React.createElement(window.ProductSales, { salesUrl: SALES_URL, token: effectiveToken }) : (
+              <div className="card"><div className="empty-state"><div className="empty-icon">🛍️</div><div className="empty-title">Loading…</div></div></div>
+            ))
           ) : (
             view === 'instock' && branchUser ? (
               <BranchInStock salesUrl={SALES_URL} token={effectiveToken} />

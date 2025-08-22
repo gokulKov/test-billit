@@ -7,7 +7,8 @@ const branchSchema = new mongoose.Schema(
     name: { type: String, required: true },
     address: { type: String },
     phoneNumber: { type: String },
-    email: { type: String, required: true },
+  // store emails in lowercase to ensure case-insensitive lookups
+  email: { type: String, required: true, lowercase: true, index: true },
     passwordHash: { type: String, required: true },
     isAdmin: { type: Boolean, default: false },
     createdBy: { type: String },

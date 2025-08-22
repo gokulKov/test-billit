@@ -28,13 +28,28 @@ function BankHistory({ salesUrl, token }) {
   const onBankChange = (e) => { const id = e.target.value; setBankId(id); loadTxns(id); };
   const currency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
 
+  const formatReference = (ref) => {
+    if (!ref) return '-';
+    try {
+      const s = String(ref || '').trim();
+      if (!s) return '-';
+      // Common patterns created by the server
+      if (s.startsWith('Sale:')) return 'Sale completed';
+      if (s.toLowerCase().includes('instock')) return 'In-stock payment';
+      if (s.toLowerCase().includes('supplier')) return 'Supplier payment';
+      // Fallback: shorten long ids but keep readable
+      if (s.length > 40) return s.slice(0, 36) + '…';
+      return s;
+    } catch (e) { return '-'; }
+  };
+
   return (
     <div className="card table-card">
       <div className="row" style={{padding:'12px 12px 0 12px'}}>
         <div className="col">
           <label>Filter by Bank</label>
           <select value={bankId} onChange={onBankChange}>
-            <option value="">All banks</option>
+            {/* <option value="">All banks</option> */}
             {banks.map(b => <option key={b._id} value={b._id}>{b.bankName || b.accountNumber || b._id}</option>)}
           </select>
         </div>
@@ -66,7 +81,7 @@ function BankHistory({ salesUrl, token }) {
                 <td>{r.bank_id?.bankName || '-'}</td>
                 <td>{r.type}</td>
                 <td className="text-right">{currency(r.amount)}</td>
-                <td>{r.reference || '-'}</td>
+                <td>{formatReference(r.reference)}</td>
                 <td>{r.supplier_id?.supplierName || '-'}</td>
                 <td className="text-right">{currency(r.balanceAfter)}</td>
               </tr>

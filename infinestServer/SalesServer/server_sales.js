@@ -1,4 +1,5 @@
 require('dotenv').config();
+console.log('🔸 Starting Sales server script... PID=', process.pid);
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -10,6 +11,9 @@ const supplierRoutes = require('./routes/supplierRoutes');
 const inStockRoutes = require('./routes/inStockRoutes');
 const bankTransactionRoutes = require('./routes/bankTransactionRoutes');
 const branchRoutes = require('./routes/branchRoutes');
+const branchSupplyRoutes = require('./routes/branchSupplyRoutes');
+const branchExpenseRoutes = require('./routes/branchExpenseRoutes');
+const saleRoutes = require('./routes/saleRoutes');
 
 const { syncSalesUser } = require('./controllers/salesSyncController');
 const app = express();
@@ -32,6 +36,29 @@ mongoose.connect(MONGO_URI).then(() => console.log('✅ Sales Mongo Connected'))
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
+// DEV DEBUG: inspect a branch record by email (dev-only helper)
+// Usage: GET /debug/branch?email=branch@example.com
+app.get('/debug/branch', async (req, res) => {
+  try {
+    const Branch = require('./models/branch');
+    const email = (req.query.email || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ message: 'email query required' });
+    const branch = await Branch.findOne({ email }).lean();
+    if (!branch) return res.status(404).json({ message: 'Branch not found' });
+    // Return only non-sensitive fields and a short hash preview for debugging
+    return res.json({
+      email: branch.email,
+      shop_id: branch.shop_id,
+      name: branch.name,
+      isAdmin: !!branch.isAdmin,
+      passwordHashPrefix: (branch.passwordHash || '').slice(0, 12)
+    });
+  } catch (err) {
+    console.error('/debug/branch error:', err && err.message || err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Branch login: allow branch-level sign-in using branch email + password
 app.post('/auth/branch-login', async (req, res) => {
   try {
@@ -41,11 +68,20 @@ app.post('/auth/branch-login', async (req, res) => {
     const Branch = require('./models/branch');
     const crypto = require('crypto');
 
-    const branch = await Branch.findOne({ email: email.toLowerCase() });
-    if (!branch) return res.status(401).json({ message: 'Invalid credentials' });
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    console.log('➡️ Branch login attempt for:', normalizedEmail);
+    const branch = await Branch.findOne({ email: normalizedEmail });
+    if (!branch) {
+      console.log('⬇️ Branch not found for:', normalizedEmail);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     const hash = crypto.createHash('sha256').update(password).digest('hex');
-    if (hash !== branch.passwordHash) return res.status(401).json({ message: 'Invalid credentials' });
+    console.log('🔐 Hash compare (prefixes): computed=', hash.slice(0, 8), ' stored=', (branch.passwordHash || '').slice(0, 8));
+    if (hash !== branch.passwordHash) {
+      console.log('❌ Password hash mismatch for:', normalizedEmail);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     // Issue a branch-scoped token (shorter expiry)
     const payload = {
@@ -293,6 +329,12 @@ app.use(supplierRoutes);
 app.use(inStockRoutes);
 app.use(bankTransactionRoutes);
 app.use(branchRoutes);
+app.use(branchSupplyRoutes);
+app.use(branchExpenseRoutes);
+app.use(saleRoutes);
 
 const PORT = process.env.SALES_PORT || 9000;
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Sales Server on ${PORT}`));
+app.listen(PORT, '0.0.0.0', function () {
+  console.log(`🚀 Sales Server on ${PORT} (pid=${process.pid})`);
+});
+console.log('🔹 server_sales.js module setup complete');

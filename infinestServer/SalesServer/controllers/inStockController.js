@@ -4,6 +4,7 @@ const BankTransaction = require('../models/bankTransaction');
 
 exports.createInStock = async (req, res) => {
   try {
+  console.debug('createInStock payload items:', JSON.stringify(req.body.items || []));
   const { shop_id, userId } = req.user || {};
     if (!shop_id) return res.status(400).json({ success: false, message: 'Shop missing' });
 
@@ -27,16 +28,18 @@ exports.createInStock = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Insufficient bank balance' });
     }
 
-    const doc = await InStock.create({
+  const doc = await InStock.create({
       shop_id,
       supplier_id,
       bank_id,
       supplierAmount: Number(supplierAmount) || 0,
       items: (items || []).map(i => ({
+        productNo: i.productNo || '',
         productName: i.productName || '',
         brand: i.brand || '',
         model: i.model || '',
-        quantity: Number(i.quantity) || 1,
+  quantity: Number(i.quantity) || 1,
+  totalQuantity: Number(i.quantity) || 1,
         costPrice: Number(i.costPrice) || 0,
         sellingPrice: Number(i.sellingPrice) || 0,
         validity: i.validity ? new Date(i.validity) : undefined,
@@ -44,6 +47,7 @@ exports.createInStock = async (req, res) => {
       createdBy: String(userId || ''),
       updatedBy: String(userId || ''),
     });
+  console.debug('createInStock saved doc items:', JSON.stringify(doc.items || []));
 
     // Debit bank and record transaction
     const newBalance = currentBalance - totalCost;
@@ -89,7 +93,23 @@ exports.listInStock = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate('supplier_id', 'supplierName agencyName')
       .lean();
-    return res.json({ success: true, entries });
+    // For each returned entry, compute for each item how much was shipped
+    // to branches by comparing totalQuantity vs current quantity.
+    try {
+      const enriched = (entries || []).map(e => {
+        const items = (Array.isArray(e.items) ? e.items : []).map(it => {
+          const totalQ = Number(it.totalQuantity || it.quantity || 0);
+          const currentQ = Number(it.quantity || 0);
+          const shippedQty = Math.max(0, totalQ - currentQ);
+          return { ...it, totalQuantity: totalQ, shippedQty };
+        });
+        return { ...e, items };
+      });
+      return res.json({ success: true, entries: enriched });
+    } catch (err) {
+      console.error('listInStock enrich error:', err && err.message ? err.message : err);
+      return res.json({ success: true, entries });
+    }
   } catch (err) {
     console.error('listInStock error:', err.message);
     return res.status(500).json({ success: false, message: err.message });

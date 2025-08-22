@@ -10,7 +10,9 @@ const PLAN_LIMITS = {
 // POST /api/branches
 const createBranch = async (req, res) => {
   try {
-    const { name, address, phoneNumber, email, password } = req.body || {};
+    const { name, address, phoneNumber, email: rawEmail, password } = req.body || {};
+    // normalize email first to avoid using 'email' before initialization
+    const email = (rawEmail || '').toLowerCase().trim();
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'name, email and password are required' });
     }
@@ -30,7 +32,7 @@ const createBranch = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Branch limit reached for your plan' });
     }
 
-    const exists = await Branch.findOne({ shop_id: req.user.shop_id, email });
+  const exists = await Branch.findOne({ shop_id: req.user.shop_id, email });
     if (exists) {
       return res.status(400).json({ success: false, message: 'A branch with this email already exists' });
     }
@@ -69,4 +71,27 @@ const listBranches = async (req, res) => {
   }
 };
 
-module.exports = { createBranch, listBranches };
+// PATCH /api/branches/:id/toggle-admin
+const toggleBranchAdmin = async (req, res) => {
+  try {
+    const branchId = req.params.id;
+    if (!branchId) return res.status(400).json({ success: false, message: 'Branch id required' });
+
+    // Only allow shop-level admin (req.user.isAdmin) to toggle branch admin flag
+    if (!req.user || !req.user.isAdmin) return res.status(403).json({ success: false, message: 'Not allowed' });
+
+    const doc = await Branch.findOne({ _id: branchId, shop_id: req.user.shop_id });
+    if (!doc) return res.status(404).json({ success: false, message: 'Branch not found' });
+
+    doc.isAdmin = !doc.isAdmin;
+    doc.updatedBy = req.user.userId || req.user.branch_id || '';
+    await doc.save();
+    return res.json({ success: true, branch: doc });
+  } catch (err) {
+    console.error('toggleBranchAdmin error:', err && err.message ? err.message : err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = { createBranch, listBranches, toggleBranchAdmin };
+  
