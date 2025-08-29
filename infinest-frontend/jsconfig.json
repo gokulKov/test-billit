@@ -22,8 +22,7 @@
   "include": [
     "next-env.d.ts",
     "**/*.js",
-    "**/*.jsx",
-    ".next/types/**/*.ts"
+    "**/*.jsx"
   ],
   "exclude": [
     "node_modules"

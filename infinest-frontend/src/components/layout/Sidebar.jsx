@@ -34,11 +34,19 @@ export function AppSidebar({ sidebarOpen, setSidebarOpen, role }) {
 
         const imageUrl = res.data.imageUrl || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM0Qjc2ODgiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iI0Y5RkFGQiIvPgo8cGF0aCBkPSJNMTAgMzJjMC02IDQtMTAgMTAtMTBzMTAgNCAxMCAxMCIgZmlsbD0iI0Y5RkFGQiIvPgo8L3N2Zz4K"
         const name = res.data.name || "User"
-        const cacheBustedUrl = `${imageUrl}?t=${Date.now()}`
+        
+        // Fix imageUrl to use correct protocol/domain if it's an absolute URL
+        let correctedImageUrl = imageUrl
+        if (imageUrl && imageUrl.startsWith('http')) {
+          // Replace any https://localhost or https://127.0.0.1 with the correct auth API base URL
+          correctedImageUrl = imageUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1):\d+/, process.env.NEXT_PUBLIC_API_URL_AUTH)
+        }
+        
+        const cacheBustedUrl = `${correctedImageUrl}?t=${Date.now()}`
 
         setProfileImage(cacheBustedUrl)
         setProfileName(name)
-        localStorage.setItem("profileImage", imageUrl)
+        localStorage.setItem("profileImage", correctedImageUrl)
         localStorage.setItem("profileName", name)
       } catch (err) {
         console.error("❌ Failed to fetch profile:", err.response?.data || err.message)
@@ -50,8 +58,14 @@ export function AppSidebar({ sidebarOpen, setSidebarOpen, role }) {
 
   useEffect(() => {
     const handleStorageChange = () => {
-      const updatedImage = localStorage.getItem("profileImage") || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM0Qjc2ODgiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iI0Y5RkFGQiIvPgo8cGF0aCBkPSJNMTAgMzJjMC02IDQtMTAgMTAtMTBzMTAgNCAxMCAxMCIgZmlsbD0iI0Y5RkFGQiIvPgo8L3N2Zz4K"
+      let updatedImage = localStorage.getItem("profileImage") || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM0Qjc2ODgiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iI0Y5RkFGQiIvPgo8cGF0aCBkPSJNMTAgMzJjMC02IDQtMTAgMTAtMTBzMTAgNCAxMCAxMCIgZmlsbD0iI0Y5RkFGQiIvPgo8L3N2Zz4K"
       const updatedName = localStorage.getItem("profileName") || "User"
+      
+      // Fix imageUrl to use correct protocol/domain if it's an absolute URL  
+      if (updatedImage && updatedImage.startsWith('http')) {
+        updatedImage = updatedImage.replace(/https?:\/\/(localhost|127\.0\.0\.1):\d+/, process.env.NEXT_PUBLIC_API_URL_AUTH)
+      }
+      
       setProfileImage(`${updatedImage}?t=${Date.now()}`)
       setProfileName(updatedName)
     }
@@ -231,9 +245,12 @@ export function AppSidebar({ sidebarOpen, setSidebarOpen, role }) {
                   >
                     <div className="relative">
                       <img
-                        src={profileImage || "/placeholder.svg"}
+                        src={profileImage || "/default-profile.png"}
                         alt="Profile"
                         className="w-12 h-12 rounded-full object-cover border-2 border-slate-500/50 hover:border-blue-400/70 transition-all duration-300 shadow-lg"
+                        onError={(e) => {
+                          e.target.src = "/default-profile.png"
+                        }}
                       />
                     </div>
 

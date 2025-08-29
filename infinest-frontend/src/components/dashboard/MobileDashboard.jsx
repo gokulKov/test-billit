@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Smartphone, DollarSign, Users, Package, Clock, CheckCircle, LogOut } from "lucide-react"
+import { Smartphone, DollarSign, Users, Package, Clock, CheckCircle, LogOut, BarChart3 } from "lucide-react"
 import Pagination from "@/components/tables/Pagination"
 
 export default function MobileDashboard({ shopId }) {
@@ -114,18 +114,18 @@ export default function MobileDashboard({ shopId }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-4 text-white sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">L</span>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-sm text-gray-500">Overview of your business</p>
             </div>
-            <h1 className="text-lg font-bold">Dashboard</h1>
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <BarChart3 className="w-6 h-6 text-blue-600" />
+            </div>
           </div>
-          <button onClick={handleLogout} className="p-2 hover:bg-white/20 rounded-lg" title="Logout">
-            <LogOut className="h-6 w-6" />
-          </button>
         </div>
       </div>
 

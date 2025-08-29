@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/layout/Sidebar"
 import { PlanFeatureProvider } from "@/context/PlanFeatureContext"
 import NotificationInbox from "@/components/NotificationInbox"
 import NotificationMessage from "@/components/NotificationMessage"
+import MobileLayout from "@/components/mobile/MobileLayout"
 import { logSystem } from "@/utils/logger"
 
 export default function MainLayout({ children }) {
@@ -16,6 +17,7 @@ export default function MainLayout({ children }) {
   const [refreshNotifications, setRefreshNotifications] = useState(false)
   const [toastData, setToastData] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [isLimitReached, setIsLimitReached] = useState(false)
 
   const router = useRouter()
 
@@ -89,7 +91,11 @@ export default function MainLayout({ children }) {
     return (
       <PlanFeatureProvider>
         <div className="bg-white text-black min-h-screen">
-          <main className="w-full">{children}</main>
+          <MobileLayout 
+            shopId={shopId} 
+            isLimitReached={isLimitReached} 
+            setIsLimitReached={setIsLimitReached} 
+          />
 
           {/* Mobile Toast */}
           {toastData && (

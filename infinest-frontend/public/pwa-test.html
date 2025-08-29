@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Test - Fixel</title>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+        }
+        .test-item {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .status {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .pass { color: #00ff00; }
+        .fail { color: #ff0000; }
+        .warning { color: #ffaa00; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        #log {
+            background: #111;
+            padding: 10px;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: scroll;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PWA Functionality Test</h1>
+    
+    <div class="test-item">
+        <h3>Service Worker Registration</h3>
+        <p>Service Worker: <span id="sw-status" class="status">Checking...</span></p>
+        <button onclick="registerSW()">Register Service Worker</button>
+        <button onclick="unregisterSW()">Unregister Service Worker</button>
+    </div>
+
+    <div class="test-item">
+        <h3>Manifest</h3>
+        <p>Manifest: <span id="manifest-status" class="status">Checking...</span></p>
+        <button onclick="checkManifest()">Check Manifest</button>
+    </div>
+
+    <div class="test-item">
+        <h3>Install Prompt</h3>
+        <p>Install Prompt: <span id="install-status" class="status">Waiting...</span></p>
+        <button onclick="triggerInstall()">Trigger Install</button>
+    </div>
+
+    <div class="test-item">
+        <h3>Display Mode</h3>
+        <p>Display Mode: <span id="display-mode" class="status">Checking...</span></p>
+    </div>
+
+    <div class="test-item">
+        <h3>Network Status</h3>
+        <p>Online: <span id="network-status" class="status">Checking...</span></p>
+        <button onclick="testOffline()">Test Offline Mode</button>
+    </div>
+
+    <div class="test-item">
+        <h3>Console Log</h3>
+        <div id="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        let deferredPrompt;
+        const log = document.getElementById('log');
+
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${message}<br>`;
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+
+        // Service Worker tests
+        async function registerSW() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    document.getElementById('sw-status').textContent = 'Registered';
+                    document.getElementById('sw-status').className = 'status pass';
+                    addLog('Service Worker registered successfully');
+                } catch (error) {
+                    document.getElementById('sw-status').textContent = 'Failed';
+                    document.getElementById('sw-status').className = 'status fail';
+                    addLog('Service Worker registration failed: ' + error.message);
+                }
+            } else {
+                document.getElementById('sw-status').textContent = 'Not Supported';
+                document.getElementById('sw-status').className = 'status fail';
+                addLog('Service Worker not supported');
+            }
+        }
+
+        async function unregisterSW() {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+                document.getElementById('sw-status').textContent = 'Unregistered';
+                document.getElementById('sw-status').className = 'status warning';
+                addLog('Service Worker unregistered');
+            }
+        }
+
+        // Manifest test
+        async function checkManifest() {
+            try {
+                const response = await fetch('/manifest.json');
+                if (response.ok) {
+                    const manifest = await response.json();
+                    document.getElementById('manifest-status').textContent = 'Valid';
+                    document.getElementById('manifest-status').className = 'status pass';
+                    addLog('Manifest loaded successfully: ' + manifest.name);
+                } else {
+                    throw new Error('Failed to load manifest');
+                }
+            } catch (error) {
+                document.getElementById('manifest-status').textContent = 'Failed';
+                document.getElementById('manifest-status').className = 'status fail';
+                addLog('Manifest check failed: ' + error.message);
+            }
+        }
+
+        // Install prompt test
+        function triggerInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    addLog('Install prompt result: ' + choiceResult.outcome);
+                    deferredPrompt = null;
+                });
+            } else {
+                addLog('No install prompt available');
+            }
+        }
+
+        // Display mode check
+        function checkDisplayMode() {
+            const displayMode = window.matchMedia('(display-mode: standalone)').matches ? 'Standalone' : 'Browser';
+            document.getElementById('display-mode').textContent = displayMode;
+            document.getElementById('display-mode').className = displayMode === 'Standalone' ? 'status pass' : 'status warning';
+            addLog('Display mode: ' + displayMode);
+        }
+
+        // Network status
+        function checkNetworkStatus() {
+            const isOnline = navigator.onLine;
+            document.getElementById('network-status').textContent = isOnline ? 'Online' : 'Offline';
+            document.getElementById('network-status').className = isOnline ? 'status pass' : 'status warning';
+            addLog('Network status: ' + (isOnline ? 'Online' : 'Offline'));
+        }
+
+        function testOffline() {
+            // This would need to be tested manually by disconnecting network
+            addLog('To test offline mode, disconnect your network and reload the page');
+        }
+
+        function clearLog() {
+            log.innerHTML = '';
+        }
+
+        // Event listeners
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('install-status').textContent = 'Available';
+            document.getElementById('install-status').className = 'status pass';
+            addLog('Install prompt available');
+        });
+
+        window.addEventListener('appinstalled', (evt) => {
+            document.getElementById('install-status').textContent = 'Installed';
+            document.getElementById('install-status').className = 'status pass';
+            addLog('App installed successfully');
+        });
+
+        window.addEventListener('online', () => {
+            checkNetworkStatus();
+        });
+
+        window.addEventListener('offline', () => {
+            checkNetworkStatus();
+        });
+
+        // Initial checks
+        window.addEventListener('load', () => {
+            registerSW();
+            checkManifest();
+            checkDisplayMode();
+            checkNetworkStatus();
+            addLog('PWA test page loaded');
+        });
+    </script>
+</body>
+</html>
