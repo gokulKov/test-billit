@@ -26,6 +26,7 @@ function Sidebar({ active = 'bank', onSelect, planId, branchLimit, branchUser })
             <Item id="bank-history" label="Bank History" icon={"📜"} activeId={active} onClick={onSelect} />
             <Item id="instock" label="In Stock" icon={"📦"} activeId={active} onClick={onSelect} />
             <Item id="product-sales" label="Product Sales" icon={"🛍️"} activeId={active} onClick={onSelect} />
+            <Item id="seconds-sales" label="Seconds Sales" icon={"📊"} activeId={active} onClick={onSelect} />
             <Item id="sales-track" label="Sales Track" icon={"📊"} activeId={active} onClick={onSelect} />
             <Item id="branch-expense" label="New Expense" icon={"💸"} activeId={active} onClick={onSelect} />
           
@@ -49,6 +50,11 @@ function Sidebar({ active = 'bank', onSelect, planId, branchLimit, branchUser })
             />
               <Item id="branch-supply" label="Branch Supply" icon={"🚚"} activeId={active} onClick={onSelect} locked={!canUseBranch} />
               <Item id="branch-supply-history" label="Branch Supply History" icon={"📋"} activeId={active} onClick={onSelect} locked={!canUseBranch} />
+            
+                {/* New admin-only items requested: Whatsapp Contact, Offer, Whatsapp Stock */}
+                <Item id="whatsapp-contact" label="Whatsapp Contact" icon={"💬"} activeId={active} onClick={onSelect} />
+                <Item id="offer" label="Offer" icon={"🏷️"} activeId={active} onClick={onSelect} />
+                <Item id="whatsapp-stock" label="Whatsapp Stock" icon={"📦"} activeId={active} onClick={onSelect} />
           </>
         )}
       </nav>

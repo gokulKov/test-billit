@@ -233,12 +233,7 @@ function ProductSales({ salesUrl, token }) {
 			
 			
 			
-			{/*  okay develo the product sold flow first i enter the product no then add
-             the table then enter the selling qty and enter the mobile number an payment
-              select bank that's also add in bank history and that 
-              selling price add in bank balance this record also stored in db then 
-              click sell the stock is sold this sold record details alos stored in db
-             */}
+			
 			<div className="card mt-3 table-card">
 				<div className="table-title">My Products</div>
 				{sellerProducts.length === 0 ? (

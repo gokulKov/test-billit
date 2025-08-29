@@ -3,6 +3,8 @@ console.log('🔸 Starting Sales server script... PID=', process.pid);
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 const axios = require('axios').create({ family: 4, timeout: 10000 });
 const jwt = require('jsonwebtoken');
 const Shop = require('./models/shop');
@@ -14,10 +16,23 @@ const branchRoutes = require('./routes/branchRoutes');
 const branchSupplyRoutes = require('./routes/branchSupplyRoutes');
 const branchExpenseRoutes = require('./routes/branchExpenseRoutes');
 const saleRoutes = require('./routes/saleRoutes');
+const whatsappContactRoutes = require('./routes/whatsappContactRoutes');
+const whatsappStockRoutes = require('./routes/whatsappStockRoutes');
+const whatsappSaleRoutes = require('./routes/whatsappSaleRoutes');
+const mysqlUserRoutes = require('./routes/mysqlUserRoutes');
+const secondsSalesRoutes = require('./routes/secondsSalesRoutes');
 
 const { syncSalesUser } = require('./controllers/salesSyncController');
 const app = express();
-app.use(express.json());
+// Increase JSON payload limit to allow base64 file uploads from the frontend.
+// This is a temporary measure; for production prefer multipart uploads (multer) or direct S3 uploads.
+app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '50mb' }));
+app.use(express.urlencoded({ limit: process.env.EXPRESS_URLENCODED_LIMIT || '50mb', extended: true }));
+
+// Serve uploaded files (images/documents/signatures)
+const uploadsDir = path.resolve(__dirname, 'uploads');
+try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch (e) {}
+app.use('/uploads', express.static(uploadsDir));
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -332,6 +347,11 @@ app.use(branchRoutes);
 app.use(branchSupplyRoutes);
 app.use(branchExpenseRoutes);
 app.use(saleRoutes);
+app.use(whatsappContactRoutes);
+app.use(whatsappStockRoutes);
+app.use(whatsappSaleRoutes);
+app.use(mysqlUserRoutes);
+app.use(secondsSalesRoutes);
 
 const PORT = process.env.SALES_PORT || 9000;
 app.listen(PORT, '0.0.0.0', function () {

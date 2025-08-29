@@ -262,6 +262,31 @@ const Feature = mongoose.model("Feature", featureSchema);
 const Product = mongoose.model("Product", productSchema);
 const Notification = mongoose.model("Notification", notificationSchema);
 const ProductHistory = mongoose.model("ProductHistory", productHistorySchema);
+// ==============================
+// 🧾 Admin Sale Schema
+// ==============================
+const adminSaleItemSchema = new mongoose.Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+  productNo: { type: String },
+  productName: { type: String },
+  qty: { type: Number, default: 0 },
+  sellingPrice: { type: Number, default: 0 },
+  lineTotal: { type: Number, default: 0 }
+}, { _id: false });
+
+const adminSaleSchema = new mongoose.Schema({
+  shop_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Shop', index: true },
+  branch_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', index: true },
+  seller_id: { type: String },
+  customerNo: { type: String, default: '' },
+  items: { type: [adminSaleItemSchema], default: [] },
+  totalAmount: { type: Number, default: 0 },
+  paymentMethod: { type: String, default: 'online' },
+  bank_id: { type: String, default: '' },
+  createdBy: { type: String, default: '' }
+}, { timestamps: true });
+
+const AdminSale = mongoose.model('AdminSale', adminSaleSchema);
 const Expense = mongoose.model("Expense", expenseSchema);
 const DailySummary = mongoose.model("DailySummary", dailySummarySchema);
 

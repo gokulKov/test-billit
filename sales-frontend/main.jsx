@@ -212,6 +212,26 @@ function App() {
             <BranchLogin salesUrl={SALES_URL} />
           ) : view === 'branch-supply' ? (
             <BranchSupply salesUrl={SALES_URL} token={effectiveToken} />
+          ) : (!branchUser && view === 'whatsapp-stock') ? (
+            (window.WhatsappStock ? React.createElement(window.WhatsappStock, { salesUrl: SALES_URL, token: effectiveToken }) : (
+              <div className="card"><div className="empty-state"><div className="empty-icon">📦💬</div><div className="empty-title">Loading…</div></div></div>
+            ))
+          ) : (!branchUser && view === 'whatsapp-contact') ? (
+            (window.WhatsappContact ? React.createElement(window.WhatsappContact, { salesUrl: SALES_URL, token: effectiveToken }) : (
+              <div className="card"><div className="empty-state"><div className="empty-icon">💬</div><div className="empty-title">Loading…</div></div></div>
+            ))
+          ) : (branchUser && view === 'seconds-sales') ? (
+            (window.SecondsSales ? React.createElement(window.SecondsSales, { salesUrl: SALES_URL, token: effectiveToken }) : (
+              <div className="card"><div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">Loading…</div></div></div>
+            ))
+          ) : (branchUser && (view || '').startsWith('seconds-sales-view-')) ? (
+            // extract id after prefix
+            (() => {
+              const id = (view || '').replace('seconds-sales-view-', '');
+              return (window.SecondsSalesView ? React.createElement(window.SecondsSalesView, { salesUrl: SALES_URL, token: effectiveToken, id }) : (
+                <div className="card"><div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">Loading…</div></div></div>
+              ));
+            })()
           ) : view === 'branch-supply-history' ? (
             (window.BranchSupplyHistory ? React.createElement(window.BranchSupplyHistory, { salesUrl: SALES_URL, token: effectiveToken }) : (
               <div className="card">
