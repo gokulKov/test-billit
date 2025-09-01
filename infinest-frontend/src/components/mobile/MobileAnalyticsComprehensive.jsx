@@ -53,8 +53,8 @@ export default function MobileAnalytics({ shopId }) {
   
   const [recordsAnalytics, setRecordsAnalytics] = useState({
     totalRecords: 0,
-    completedRecords: 0,
-    pendingRecords: 0,
+    readyNotDeliveredRecords: 0,
+    notReadyRecords: 0,
     totalRevenue: 0,
     avgRevenuePerRecord: 0,
     topCustomers: []
@@ -78,39 +78,78 @@ export default function MobileAnalytics({ shopId }) {
     setIsLoading(true)
     try {
       const token = localStorage.getItem("token")
+      if (!token) {
+        logError("No authentication token found")
+        return
+      }
+
+      // Prepare date parameters based on filter type
+      let dateParams = {}
+      if (filterType === "today") {
+        dateParams = { date: new Date().toISOString().split('T')[0] }
+      } else if (filterType === "range") {
+        dateParams = { 
+          fromDate: dateFilters.fromDate, 
+          toDate: dateFilters.toDate,
+          date: dateFilters.fromDate // Add fallback date for APIs that require it
+        }
+      } else if (filterType === "specific") {
+        dateParams = { date: dateFilters.specificDate }
+      }
+
+      // Ensure we always have a date parameter
+      if (!dateParams.date) {
+        dateParams.date = new Date().toISOString().split('T')[0]
+      }
       
       // Get dashboard summary data
       const overviewRes = await api.post("/api/dashboard/summary", 
-        { shop_id: shopId }, 
+        { shop_id: shopId, ...dateParams }, 
         { headers: { Authorization: `Bearer ${token}` } }
       )
       
       // Get daily summary for revenue breakdown
-      const dateParam = filterType === "today" ? new Date().toISOString().split('T')[0] : dateFilters.specificDate
       const dailySummaryRes = await api.post("/api/daily-summary", 
-        { shop_id: shopId, date: dateParam }, 
+        { shop_id: shopId, date: new Date().toISOString().split('T')[0], ...dateParams }, 
         { headers: { Authorization: `Bearer ${token}` } }
       )
       
-      // Get expense data
-      const expensesRes = await api.post("/api/expenses/today", 
-        { shop_id: shopId, date: dateParam }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      console.log("Daily summary response:", dailySummaryRes.data)
+      
+      // Get expense data with error handling
+      let expensesRes
+      try {
+        expensesRes = await api.post("/api/expenses/today", 
+          { shop_id: shopId, date: dateParams.date }, 
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        console.log("Expenses response:", expensesRes.data)
+      } catch (expenseError) {
+        console.warn("Failed to fetch expenses:", expenseError)
+        expensesRes = { data: { totalExpenses: 0 } }
+      }
       
       const dailyData = dailySummaryRes.data
       const expenseData = expensesRes.data
+      const overviewResponseData = overviewRes.data
       
-      // Calculate net profit
-      const totalRevenue = dailyData.totalRevenue || 0
-      const totalExpenses = expenseData.totalAmount || 0
+      console.log("Processing data:", { dailyData, expenseData, overviewResponseData })
+      
+      // Calculate revenue with proper null checks
+      const totalRevenue = parseFloat(dailyData?.totalRevenue || 0)
+      const serviceRevenue = parseFloat(dailyData?.serviceRevenue || 0) 
+      const stockRevenue = parseFloat(dailyData?.stockRevenue || 0)
+      const totalExpenses = parseFloat(expenseData?.totalAmount || 0)
+      
       const netProfit = totalRevenue - totalExpenses
       const netProfitPercentage = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100) : 0
       
+      console.log("Calculated values:", { totalRevenue, serviceRevenue, stockRevenue, totalExpenses, netProfit })
+      
       setOverviewData({
         totalRevenue,
-        serviceRevenue: dailyData.serviceRevenue || 0,
-        stockRevenue: dailyData.stockRevenue || 0,
+        serviceRevenue,
+        stockRevenue,
         totalExpenses,
         netProfit,
         netProfitPercentage,
@@ -118,42 +157,156 @@ export default function MobileAnalytics({ shopId }) {
         balanceRecords: 0 // Will be updated by balance fetch
       })
       
-      // Set records analytics
+      // Set records analytics with proper data mapping
+      const mobilesData = overviewResponseData?.mobiles || []
+      const readyNotDeliveredRecords = mobilesData.filter(m => 
+        m.status === 'ready' || m.status === 'completed' || m.ready === true
+      ).length
+      const notReadyRecords = mobilesData.filter(m => 
+        m.status === 'pending' || m.status === 'in-progress' || m.status === 'received' || m.ready === false
+      ).length
+      const avgRevenuePerRecord = mobilesData.length > 0 ? (totalRevenue / mobilesData.length) : 0
+      
+      console.log("Mobile records analysis:", {
+        totalMobiles: mobilesData.length,
+        readyNotDelivered: readyNotDeliveredRecords,
+        notReady: notReadyRecords,
+        sampleStatuses: mobilesData.slice(0, 3).map(m => ({ status: m.status, ready: m.ready }))
+      })
+      
       setRecordsAnalytics({
-        totalRecords: overviewRes.data.mobiles ? overviewRes.data.mobiles.length : 0,
-        revenue: dailyData.serviceRevenue || 0,
-        recentTransactions: [] // You can fetch specific records if needed
+        totalRecords: mobilesData.length,
+        readyNotDeliveredRecords,
+        notReadyRecords,
+        totalRevenue: serviceRevenue, // Use service revenue for records
+        avgRevenuePerRecord,
+        topCustomers: [] // You can fetch specific customer data if needed
       })
       
-      // Fetch stock analytics
-      const stockRes = await api.post("/api/products/list", 
-        { shop_id: shopId }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      
-      const products = stockRes.data.products || []
-      setStockAnalytics({
-        totalProducts: products.length,
-        totalInventoryValue: products.reduce((sum, p) => sum + (p.quantity * p.price), 0),
-        revenue: dailyData.stockRevenue || 0,
-        lowStockProducts: products.filter(p => p.quantity <= 10),
-        topSellingProducts: products.slice(0, 5) // You can implement proper sorting based on sales
-      })
-      
-      // Fetch balance analytics
+      // Fetch stock analytics with proper error handling
       try {
-        const customerBalanceRes = await api.post("/api/customers/balance", 
+        const stockRes = await api.post("/api/products/list", 
           { shop_id: shopId }, 
           { headers: { Authorization: `Bearer ${token}` } }
         )
         
-        const dealerBalanceRes = await api.post("/api/dealers/balance", 
-          { shop_id: shopId }, 
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
+        console.log("Stock response:", stockRes.data)
         
-        const allBalanceData = [...customerBalanceRes.data, ...dealerBalanceRes.data]
-        const totalBalance = allBalanceData.reduce((sum, item) => sum + (parseFloat(item.balanceAmount) || 0), 0)
+        // Try different possible response structures
+        const products = stockRes.data?.products || 
+                        stockRes.data?.data || 
+                        stockRes.data || 
+                        []
+        
+        console.log("Products array:", products, "Length:", products.length)
+        
+        if (!Array.isArray(products)) {
+          console.warn("Products is not an array:", products)
+          throw new Error("Invalid products data structure")
+        }
+        
+        const totalInventoryValue = products.reduce((sum, p) => {
+          console.log("Processing product:", p)
+          
+          // Try multiple possible field names for price
+          const price = parseFloat(
+            p.price || 
+            p.selling_price || 
+            p.unit_price || 
+            p.cost_price ||
+            p.product_price ||
+            p.purchase_price ||
+            p.rate ||
+            0
+          )
+          // Try multiple possible field names for quantity
+          const quantity = parseInt(
+            p.quantity || 
+            p.stock_quantity || 
+            p.stock || 
+            p.available_quantity ||
+            p.inventory_quantity ||
+            p.available_stock ||
+            p.current_stock ||
+            0
+          )
+          
+          const value = price * quantity
+          console.log(`Product: ${p.name || p.product_name || 'Unknown'}, Price: ${price}, Quantity: ${quantity}, Value: ${value}`)
+          return sum + value
+        }, 0)
+        
+        const lowStockProducts = products.filter(p => {
+          const qty = parseInt(
+            p.quantity || 
+            p.stock_quantity || 
+            p.stock || 
+            p.available_quantity ||
+            p.inventory_quantity ||
+            0
+          )
+          return qty <= 10
+        })
+        
+        console.log("Stock calculations:", {
+          totalProducts: products.length,
+          totalInventoryValue,
+          lowStockCount: lowStockProducts.length,
+          sampleProducts: products.slice(0, 3).map(p => ({
+            name: p.name || p.product_name,
+            price: p.price || p.selling_price,
+            quantity: p.quantity || p.stock_quantity
+          }))
+        })
+        
+        setStockAnalytics({
+          totalProducts: products.length,
+          totalValue: totalInventoryValue,
+          lowStockItems: lowStockProducts.length,
+          recentSales: stockRevenue, // Use stock revenue from daily summary
+          topSellingProducts: products.slice(0, 5) // You can implement proper sorting based on sales
+        })
+        
+      } catch (stockError) {
+        console.error("Stock fetch error:", stockError)
+        logError("Failed to fetch stock data", stockError)
+        // Set default values if stock fetch fails
+        setStockAnalytics({
+          totalProducts: 0,
+          totalValue: 0,
+          lowStockItems: 0,
+          recentSales: stockRevenue || 0,
+          topSellingProducts: []
+        })
+      }
+      
+      // Fetch balance analytics with better error handling
+      try {
+        const [customerBalanceRes, dealerBalanceRes] = await Promise.all([
+          api.post("/api/customers/balance", 
+            { shop_id: shopId }, 
+            { headers: { Authorization: `Bearer ${token}` } }
+          ).catch(err => ({ data: [] })), // Return empty array on error
+          api.post("/api/dealers/balance", 
+            { shop_id: shopId }, 
+            { headers: { Authorization: `Bearer ${token}` } }
+          ).catch(err => ({ data: [] })) // Return empty array on error
+        ])
+        
+        const customerBalances = Array.isArray(customerBalanceRes.data) ? customerBalanceRes.data : []
+        const dealerBalances = Array.isArray(dealerBalanceRes.data) ? dealerBalanceRes.data : []
+        const allBalanceData = [...customerBalances, ...dealerBalances]
+        
+        const totalBalance = allBalanceData.reduce((sum, item) => {
+          const balance = parseFloat(item.balanceAmount || item.balance || 0)
+          return sum + balance
+        }, 0)
+        
+        console.log("Balance data:", { 
+          customerCount: customerBalances.length, 
+          dealerCount: dealerBalances.length, 
+          totalBalance 
+        })
         
         // Update overview data with balance information
         setOverviewData(prev => ({
@@ -161,12 +314,51 @@ export default function MobileAnalytics({ shopId }) {
           outstandingBalance: totalBalance,
           balanceRecords: allBalanceData.length
         }))
+        
       } catch (balanceError) {
+        console.error("Balance fetch error:", balanceError)
         logError("Failed to fetch balance data", balanceError)
+        // Set default values if balance fetch fails
+        setOverviewData(prev => ({
+          ...prev,
+          outstandingBalance: 0,
+          balanceRecords: 0
+        }))
       }
       
     } catch (error) {
+      console.error("Analytics fetch error:", error)
       logError("Failed to fetch analytics data", error)
+      
+      // Set default values on error
+      setOverviewData({
+        totalRevenue: 0,
+        serviceRevenue: 0,
+        stockRevenue: 0,
+        totalExpenses: 0,
+        netProfit: 0,
+        netProfitPercentage: 0,
+        outstandingBalance: 0,
+        balanceRecords: 0
+      })
+      
+      setRecordsAnalytics({
+        totalRecords: 0,
+        readyNotDeliveredRecords: 0,
+        notReadyRecords: 0,
+        totalRevenue: 0,
+        avgRevenuePerRecord: 0,
+        topCustomers: []
+      })
+      
+      setStockAnalytics({
+        totalProducts: 0,
+        totalValue: 0,
+        lowStockItems: 0,
+        recentSales: 0,
+        topSellingProducts: []
+      })
+      
     } finally {
       setIsLoading(false)
     }
@@ -204,7 +396,16 @@ export default function MobileAnalytics({ shopId }) {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="p-4">
-          <h1 className="text-xl font-bold text-gray-900 mb-4">Analytics Dashboard</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-gray-900">Analytics Dashboard</h1>
+            <button
+              onClick={fetchAnalyticsData}
+              disabled={isLoading}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
           
           {/* Date Filter Controls */}
           <div className="space-y-3">
@@ -217,10 +418,10 @@ export default function MobileAnalytics({ shopId }) {
                 <button
                   key={filter.value}
                   onClick={() => setFilterType(filter.value)}
-                  className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
+                  className={`px-3 py-1 rounded-full text-sm whitespace-nowrap transition-colors ${
                     filterType === filter.value
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-100 text-gray-600"
+                      ? "bg-blue-100 text-blue-700 border border-blue-300"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
                   {filter.label}
@@ -231,29 +432,46 @@ export default function MobileAnalytics({ shopId }) {
             {/* Date Inputs */}
             {filterType === "range" && (
               <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  value={dateFilters.fromDate}
-                  onChange={(e) => setDateFilters(prev => ({ ...prev, fromDate: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                />
-                <input
-                  type="date"
-                  value={dateFilters.toDate}
-                  onChange={(e) => setDateFilters(prev => ({ ...prev, toDate: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                />
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">From Date</label>
+                  <input
+                    type="date"
+                    value={dateFilters.fromDate}
+                    onChange={(e) => setDateFilters(prev => ({ ...prev, fromDate: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">To Date</label>
+                  <input
+                    type="date"
+                    value={dateFilters.toDate}
+                    onChange={(e) => setDateFilters(prev => ({ ...prev, toDate: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
               </div>
             )}
 
             {filterType === "specific" && (
-              <input
-                type="date"
-                value={dateFilters.specificDate}
-                onChange={(e) => setDateFilters(prev => ({ ...prev, specificDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              />
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Select Date</label>
+                <input
+                  type="date"
+                  value={dateFilters.specificDate}
+                  onChange={(e) => setDateFilters(prev => ({ ...prev, specificDate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             )}
+            
+            {/* Filter Summary */}
+            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-md">
+              📅 Showing data for: 
+              {filterType === "today" && " Today"}
+              {filterType === "specific" && ` ${new Date(dateFilters.specificDate).toLocaleDateString()}`}
+              {filterType === "range" && ` ${new Date(dateFilters.fromDate).toLocaleDateString()} - ${new Date(dateFilters.toDate).toLocaleDateString()}`}
+            </div>
           </div>
         </div>
 
@@ -286,41 +504,67 @@ export default function MobileAnalytics({ shopId }) {
       {/* Content */}
       <div className="p-4 space-y-4">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
-            <span className="ml-2 text-gray-600">Loading analytics...</span>
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+            <div className="text-center">
+              <p className="text-gray-600 font-medium">Loading analytics...</p>
+              <p className="text-sm text-gray-500">Fetching data for {
+                filterType === "today" ? "today" :
+                filterType === "specific" ? new Date(dateFilters.specificDate).toLocaleDateString() :
+                `${new Date(dateFilters.fromDate).toLocaleDateString()} - ${new Date(dateFilters.toDate).toLocaleDateString()}`
+              }</p>
+            </div>
           </div>
         ) : (
           <>
             {/* Overview Tab */}
             {activeTab === "overview" && (
               <div className="space-y-4">
+                {/* Debug Info - Remove in production */}
+                {process.env.NODE_ENV === 'development' && (
+                  <Card className="bg-yellow-50 border-yellow-200">
+                    <CardContent className="p-3">
+                      <p className="text-xs text-yellow-800 font-mono">
+                        Debug: Revenue={overviewData.totalRevenue}, 
+                        Service={overviewData.serviceRevenue}, 
+                        Stock={overviewData.stockRevenue}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                
                 {/* Key Metrics */}
                 <div className="grid grid-cols-2 gap-4">
-                  <Card>
+                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-gray-600">Total Revenue</p>
-                          <p className="text-xl font-bold text-green-600">
-                            {formatCurrency(overviewData.totalRevenue)}
+                          <p className="text-sm text-green-700 font-medium">Total Revenue</p>
+                          <p className="text-xl font-bold text-green-800">
+                            {formatCurrency(overviewData.totalRevenue || 0)}
                           </p>
+                          {overviewData.totalRevenue === 0 && (
+                            <p className="text-xs text-green-600 mt-1">No revenue data</p>
+                          )}
                         </div>
-                        <TrendingUp className="w-8 h-8 text-green-500" />
+                        <TrendingUp className="w-8 h-8 text-green-600" />
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-gray-600">Total Expenses</p>
-                          <p className="text-xl font-bold text-red-600">
-                            {formatCurrency(overviewData.totalExpenses)}
+                          <p className="text-sm text-red-700 font-medium">Total Expenses</p>
+                          <p className="text-xl font-bold text-red-800">
+                            {formatCurrency(overviewData.totalExpenses || 0)}
                           </p>
+                          {overviewData.totalExpenses === 0 && (
+                            <p className="text-xs text-red-600 mt-1">No expense data</p>
+                          )}
                         </div>
-                        <TrendingDown className="w-8 h-8 text-red-500" />
+                        <TrendingDown className="w-8 h-8 text-red-600" />
                       </div>
                     </CardContent>
                   </Card>
@@ -380,33 +624,6 @@ export default function MobileAnalytics({ shopId }) {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Outstanding Balance */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Outstanding Balance</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <DollarSign className="w-5 h-5 text-red-600" />
-                        <span className="text-gray-700">Total Outstanding</span>
-                      </div>
-                      <span className="font-semibold text-red-600">
-                        {formatCurrency(overviewData.outstandingBalance)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <Receipt className="w-5 h-5 text-gray-600" />
-                        <span className="text-gray-700">Balance Records</span>
-                      </div>
-                      <span className="font-semibold text-gray-600">
-                        {overviewData.balanceRecords}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             )}
 
@@ -419,7 +636,7 @@ export default function MobileAnalytics({ shopId }) {
                       <div className="text-center">
                         <p className="text-sm text-gray-600">Total Records</p>
                         <p className="text-2xl font-bold text-blue-600">
-                          {recordsAnalytics.totalRecords}
+                          {recordsAnalytics.totalRecords || 0}
                         </p>
                       </div>
                     </CardContent>
@@ -430,7 +647,7 @@ export default function MobileAnalytics({ shopId }) {
                       <div className="text-center">
                         <p className="text-sm text-gray-600">Revenue</p>
                         <p className="text-xl font-bold text-green-600">
-                          {formatCurrency(recordsAnalytics.totalRevenue)}
+                          {formatCurrency(recordsAnalytics.totalRevenue || 0)}
                         </p>
                       </div>
                     </CardContent>
@@ -441,23 +658,36 @@ export default function MobileAnalytics({ shopId }) {
                   <CardContent className="p-4">
                     <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Completed Records:</span>
-                        <Badge className="bg-green-100 text-green-800">
-                          {recordsAnalytics.completedRecords}
+                        <span className="text-gray-600">Ready (Not Delivered):</span>
+                        <Badge className="bg-yellow-100 text-yellow-800">
+                          {recordsAnalytics.readyNotDeliveredRecords || 0}
                         </Badge>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Pending Records:</span>
-                        <Badge className="bg-yellow-100 text-yellow-800">
-                          {recordsAnalytics.pendingRecords}
+                        <span className="text-gray-600">Not Ready:</span>
+                        <Badge className="bg-red-100 text-red-800">
+                          {recordsAnalytics.notReadyRecords || 0}
                         </Badge>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Avg Revenue/Record:</span>
                         <span className="font-semibold">
-                          {formatCurrency(recordsAnalytics.avgRevenuePerRecord)}
+                          {formatCurrency(recordsAnalytics.avgRevenuePerRecord || 0)}
                         </span>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Date Range Info */}
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-center text-sm text-gray-600">
+                      <p>Showing data for: 
+                        {filterType === "today" && " Today"}
+                        {filterType === "specific" && ` ${new Date(dateFilters.specificDate).toLocaleDateString()}`}
+                        {filterType === "range" && ` ${new Date(dateFilters.fromDate).toLocaleDateString()} - ${new Date(dateFilters.toDate).toLocaleDateString()}`}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -473,7 +703,7 @@ export default function MobileAnalytics({ shopId }) {
                       <div className="text-center">
                         <p className="text-sm text-gray-600">Total Products</p>
                         <p className="text-2xl font-bold text-blue-600">
-                          {stockAnalytics.totalProducts}
+                          {stockAnalytics.totalProducts || 0}
                         </p>
                       </div>
                     </CardContent>
@@ -484,7 +714,7 @@ export default function MobileAnalytics({ shopId }) {
                       <div className="text-center">
                         <p className="text-sm text-gray-600">Stock Value</p>
                         <p className="text-xl font-bold text-green-600">
-                          {formatCurrency(stockAnalytics.totalValue)}
+                          {formatCurrency(stockAnalytics.totalValue || 0)}
                         </p>
                       </div>
                     </CardContent>
@@ -497,20 +727,59 @@ export default function MobileAnalytics({ shopId }) {
                       <div className="flex justify-between">
                         <span className="text-gray-600">Low Stock Items:</span>
                         <Badge className="bg-red-100 text-red-800">
-                          {stockAnalytics.lowStockItems}
+                          {stockAnalytics.lowStockItems || 0}
                         </Badge>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Recent Sales:</span>
                         <span className="font-semibold">
-                          {formatCurrency(stockAnalytics.recentSales)}
+                          {formatCurrency(stockAnalytics.recentSales || 0)}
                         </span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
+                
+                {/* Stock Details */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Stock Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Package className="w-5 h-5 text-blue-600" />
+                        <span className="text-gray-700">Total Inventory</span>
+                      </div>
+                      <span className="font-semibold text-blue-600">
+                        {stockAnalytics.totalProducts || 0} items
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <DollarSign className="w-5 h-5 text-green-600" />
+                        <span className="text-gray-700">Total Value</span>
+                      </div>
+                      <span className="font-semibold text-green-600">
+                        {formatCurrency(stockAnalytics.totalValue || 0)}
+                      </span>
+                    </div>
+                    {(stockAnalytics.lowStockItems || 0) > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <Minus className="w-5 h-5 text-red-600" />
+                          <span className="text-gray-700">Low Stock Alert</span>
+                        </div>
+                        <span className="font-semibold text-red-600">
+                          {stockAnalytics.lowStockItems} items
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             )}
+
           </>
         )}
       </div>

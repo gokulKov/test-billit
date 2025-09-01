@@ -25,11 +25,13 @@ import {
   RotateCcw,
   Truck,
   DollarSign,
-  Smartphone
+  Smartphone,
+  FileText
 } from "lucide-react"
 import { usePlanFeatures } from "@/context/PlanFeatureContext"
 import { logAndNotify, logError, logSuccess } from "@/utils/logger"
 import api from "../api"
+import MobileBillGenerator from "./MobileBillGenerator"
 
 export default function MobileRecordForm({ shopId, isLimitReached, setIsLimitReached }) {
   const { features, loading } = usePlanFeatures()
@@ -54,6 +56,11 @@ export default function MobileRecordForm({ shopId, isLimitReached, setIsLimitRea
   const [showFilters, setShowFilters] = useState(false)
   const [expandedRecords, setExpandedRecords] = useState(new Set())
   const [billNumberTimeout, setBillNumberTimeout] = useState(null)
+  
+  // Bill generator state
+  const [showBillGenerator, setShowBillGenerator] = useState(false)
+  const [selectedRecord, setSelectedRecord] = useState(null)
+  const [shopData, setShopData] = useState(null)
 
   useEffect(() => {
     if (customerType === "Dealer" && shopId) fetchDealers()
@@ -61,7 +68,10 @@ export default function MobileRecordForm({ shopId, isLimitReached, setIsLimitRea
   }, [customerType, shopId])
 
   useEffect(() => {
-    if (activeTab === "view" && shopId) fetchRecords()
+    if (activeTab === "view" && shopId) {
+      fetchRecords()
+      fetchShopData()
+    }
   }, [activeTab, shopId])
 
   const generateSequentialBillNumber = async () => {
@@ -240,6 +250,29 @@ export default function MobileRecordForm({ shopId, isLimitReached, setIsLimitRea
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const fetchShopData = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      const response = await api.post("/api/profile", 
+        { shop_id: shopId }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setShopData({
+        name: response.data.shop_name,
+        phone: response.data.shop_phone,
+        email: response.data.shop_email,
+        address: response.data.shop_address
+      })
+    } catch (error) {
+      logError("Failed to fetch shop data", error)
+    }
+  }
+
+  const handleGenerateBill = (record) => {
+    setSelectedRecord(record)
+    setShowBillGenerator(true)
   }
 
   const handleCreateDealer = async () => {
@@ -1016,6 +1049,13 @@ export default function MobileRecordForm({ shopId, isLimitReached, setIsLimitRea
                             {status}
                           </Badge>
                           <button
+                            onClick={() => handleGenerateBill(record)}
+                            className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                            title="Generate Bill"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => toggleRecordExpansion(record._id)}
                             className="p-1 hover:bg-gray-100 rounded"
                           >
@@ -1135,6 +1175,18 @@ export default function MobileRecordForm({ shopId, isLimitReached, setIsLimitRea
             </div>
           )}
         </div>
+      )}
+
+      {/* Bill Generator Modal */}
+      {showBillGenerator && selectedRecord && shopData && (
+        <MobileBillGenerator
+          record={selectedRecord}
+          shopData={shopData}
+          onClose={() => {
+            setShowBillGenerator(false)
+            setSelectedRecord(null)
+          }}
+        />
       )}
     </div>
   )

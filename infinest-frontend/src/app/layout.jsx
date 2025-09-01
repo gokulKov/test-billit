@@ -1,6 +1,6 @@
 import "../globals.css";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
-import PWAHandler from "@/components/PWAHandler";
+import PWAInstaller from "@/components/PWAInstaller";
 
 export const metadata = {
   title: {
@@ -49,18 +49,18 @@ export const metadata = {
     siteName: 'Fixel',
     images: [
       {
-        url: '/icons/icon-512.png',
-        width: 512,
-        height: 512,
+        url: '/images/og-image.jpg',
+        width: 1200,
+        height: 630,
         alt: 'Fixel - Mobile Service Management Platform',
-        type: 'image/png',
+        type: 'image/jpeg',
       },
       {
-        url: '/icons/icon-192.png',
-        width: 192,
-        height: 192,
+        url: '/images/og-image-square.jpg',
+        width: 600,
+        height: 600,
         alt: 'Fixel Logo',
-        type: 'image/png',
+        type: 'image/jpeg',
       }
     ],
   },
@@ -70,7 +70,7 @@ export const metadata = {
     description: 'Streamline your mobile repair business with smart tracking, billing, and inventory management. Try Fixel today!',
     creator: '@FixelApp',
     site: '@FixelApp',
-    images: ['/icons/icon-512.png'],
+    images: ['/images/twitter-image.jpg'],
   },
   robots: {
     index: true,
@@ -97,16 +97,6 @@ export const metadata = {
     'theme-color': '#3b82f6',
     'color-scheme': 'light dark',
     'format-detection': 'telephone=no',
-  },
-  manifest: '/manifest.json',
-  icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180' },
-    ],
   },
 };
 
@@ -148,7 +138,7 @@ export default function RootLayout({ children }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
-              "name": "Fixel",
+              "name": "BillIt",
               "applicationCategory": "BusinessApplication",
               "applicationSubCategory": "Service Management",
               "operatingSystem": "Web Browser",
@@ -156,7 +146,7 @@ export default function RootLayout({ children }) {
               "url": process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
               "author": {
                 "@type": "Organization",
-                "name": "Fixel Team"
+                "name": "BillIt Team"
               },
               "offers": {
                 "@type": "Offer",
@@ -177,7 +167,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="bg-black text-white min-h-screen">
-        <PWAHandler />
+        <PWAInstaller />
         {children}
         <PWAInstallPrompt />
       </body>

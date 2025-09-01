@@ -94,8 +94,6 @@ export default function MobileStockManager({ shopId }) {
       )
       
       const products = response.data.products || []
-      console.log("Fetched products for analytics:", products.length)
-      console.log("Sample product:", products[0])
       
       // Calculate analytics from products
       const totalProducts = products.length
@@ -118,9 +116,7 @@ export default function MobileStockManager({ shopId }) {
           }
         )
         totalRevenue = revenueResponse.data.stockRevenue || 0
-        console.log("Stock revenue from daily summary:", totalRevenue)
       } catch (revenueError) {
-        console.log("Daily summary not available, revenue will show 0:", revenueError.message)
         totalRevenue = 0
       }
       
@@ -154,13 +150,6 @@ export default function MobileStockManager({ shopId }) {
         }))
       })
       
-      console.log("Stock Analytics Set:", {
-        totalProducts,
-        totalInventoryValue,
-        totalRevenue,
-        lowStockCount: lowStockProducts.length,
-        outOfStockCount: outOfStockProducts.length
-      })
     } catch (error) {
       console.error("Error fetching stock analytics:", error)
     }
@@ -776,7 +765,7 @@ export default function MobileStockManager({ shopId }) {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Total Inventory Value</p>
-                    <p className="text-2xl font-bold text-green-600">₹{totalValue.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-green-600">₹{(stockAnalytics.totalInventoryValue || 0).toFixed(2)}</p>
                   </div>
                 </div>
               </CardContent>

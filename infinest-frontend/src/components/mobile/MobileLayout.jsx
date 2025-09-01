@@ -6,7 +6,7 @@ import MobileRecordForm from "./MobileRecordForm"
 import MobileStockManager from "./MobileStockManager"
 import MobileExpenses from "./MobileExpenses"
 import MobileAnalyticsComprehensive from "./MobileAnalyticsComprehensive"
-import MobileBalanceAmount from "./MobileBalanceAmount"
+import MobileBalanceCompact from "./MobileBalanceCompact"
 import MobileProfile from "./MobileProfile"
 import { usePlanFeatures } from "@/context/PlanFeatureContext"
 import { checkFeatureAccess, FEATURE_CONFIG } from "@/utils/featureAccess"
@@ -93,7 +93,11 @@ export default function MobileLayout({ shopId, isLimitReached, setIsLimitReached
           <MobileAnalyticsComprehensive shopId={shopId} />
         )
       case "balance":
-        return <MobileBalanceAmount shopId={shopId} />
+        return (
+          <div className="p-4">
+            <MobileBalanceCompact shopId={shopId} />
+          </div>
+        )
       case "profile":
         return <MobileProfile shopId={shopId} />
       default:
