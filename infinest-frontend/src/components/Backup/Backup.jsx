@@ -334,7 +334,10 @@ const BackupViewer = ({ shopId }) => {
             client_name: receiptModal.client_name,
             mobile_number: receiptModal.mobile_number,
             bill_no: receiptModal.bill_no,
-            MobileName: receiptModal.MobileName,
+            MobileName: receiptModal.MobileName.map((m) => ({
+              ...m,
+              paid_amount: typeof m.paid_amount !== 'undefined' && m.paid_amount !== null ? m.paid_amount : 0,
+            })),
           }}
           closeModal={() => setReceiptModal(null)}
         />

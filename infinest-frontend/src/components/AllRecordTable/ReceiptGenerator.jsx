@@ -10,95 +10,93 @@ import { IoCloseCircleOutline } from "react-icons/io5";
 import authApi from "../authApi";
 
 // Enhanced PrintableReceipt Component
-const PrintableReceipt = React.forwardRef(({ clientData, shopPhoneNumber, shopAddress, shopEmail, shopName }, ref) => (
-  <div ref={ref} className="bg-white p-6 rounded-lg shadow-lg border max-w-sm mx-auto text-sm font-mono">
-    {/* Header */}
-    <div className="text-center border-b-2 border-gray-800 pb-4 mb-4">
-      <h2 className="text-xl font-bold text-gray-800 mb-2">
-        {shopName || clientData.owner_name || "INFINFEST MOBILE SERVICE"}
-      </h2>
-      <p className="text-xs text-gray-600">
-        📞 Phone: {shopPhoneNumber || "9876543210"}
-      </p>
-      {shopEmail && shopEmail.trim() !== "" && shopEmail !== "N/A" && (
+const PrintableReceipt = React.forwardRef(({ clientData, shopPhoneNumber, shopAddress, shopEmail, shopName }, ref) => {
+  const totalPaid = (clientData?.MobileName || []).reduce((s, m) => s + (Number(m.paid_amount) || 0), 0);
+  return (
+    <div ref={ref} className="bg-white p-6 rounded-lg shadow-lg border max-w-sm mx-auto text-sm font-mono">
+      {/* Header */}
+      <div className="text-center border-b-2 border-gray-800 pb-4 mb-4">
+        <h2 className="text-xl font-bold text-gray-800 mb-2">
+          {shopName || clientData.owner_name || "INFINFEST MOBILE SERVICE"}
+        </h2>
         <p className="text-xs text-gray-600">
-          📧 Email: {shopEmail}
+          📞 Phone: {shopPhoneNumber || "9876543210"}
         </p>
-      )}
-      {shopAddress && shopAddress.trim() !== "" && shopAddress !== "N/A" && (
-        <p className="text-xs text-gray-600">
-          📍 Address: {shopAddress}
-        </p>
-      )}
-    </div>
+        {shopEmail && shopEmail.trim() !== "" && shopEmail !== "N/A" && (
+          <p className="text-xs text-gray-600">📧 Email: {shopEmail}</p>
+        )}
+        {shopAddress && shopAddress.trim() !== "" && shopAddress !== "N/A" && (
+          <p className="text-xs text-gray-600">📍 Address: {shopAddress}</p>
+        )}
+      </div>
 
-    {/* Customer Details */}
-    <div className="mb-4 space-y-2">
-      <div className="flex justify-between">
-        <span className="font-semibold text-gray-700">Customer:</span>
-        <span className="text-gray-900">{clientData.client_name}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="font-semibold text-gray-700">Mobile:</span>
-        <span className="text-gray-900">{clientData.mobile_number}</span>
-      </div>
-      {clientData.bill_no && (
+      {/* Customer Details */}
+      <div className="mb-4 space-y-2">
         <div className="flex justify-between">
-          <span className="font-semibold text-gray-700">Bill No:</span>
-          <span className="text-gray-900">{clientData.bill_no}</span>
+          <span className="font-semibold text-gray-700">Customer:</span>
+          <span className="text-gray-900">{clientData.client_name}</span>
         </div>
-      )}
-      <div className="flex justify-between">
-        <span className="font-semibold text-gray-700">Date:</span>
-        <span className="text-gray-900">{new Date().toLocaleDateString("en-IN")}</span>
+        <div className="flex justify-between">
+          <span className="font-semibold text-gray-700">Mobile:</span>
+          <span className="text-gray-900">{clientData.mobile_number}</span>
+        </div>
+        {clientData.bill_no && (
+          <div className="flex justify-between">
+            <span className="font-semibold text-gray-700">Bill No:</span>
+            <span className="text-gray-900">{clientData.bill_no}</span>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <span className="font-semibold text-gray-700">Date:</span>
+          <span className="text-gray-900">{new Date().toLocaleDateString("en-IN")}</span>
+        </div>
+      </div>
+
+      {/* Services Table */}
+      <div className="mb-4">
+        <h3 className="font-bold text-gray-800 mb-3 text-center border-b border-gray-300 pb-1">📱 DEVICES FOR SERVICE</h3>
+        <table className="w-full border-collapse border border-gray-400 text-xs table-fixed">
+          <colgroup>
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '60%' }} />
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '10%' }} />
+          </colgroup>
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border border-gray-400 px-2 py-2 text-left">#</th>
+              <th className="border border-gray-400 px-2 py-2 text-left">Device</th>
+              <th className="border border-gray-400 px-2 py-2 text-left">Issue</th>
+              <th className="border border-gray-400 px-2 py-2 text-right">Paid</th>
+            </tr>
+          </thead>
+          <tbody>
+            {clientData.MobileName.map((mobile, index) => (
+              <tr key={index} className="hover:bg-gray-50">
+                <td className="border border-gray-400 px-2 py-2 text-center font-semibold">{index + 1}</td>
+                <td className="border border-gray-400 px-2 py-2"><div className="truncate max-w-full">{mobile.mobile_name}</div></td>
+                <td className="border border-gray-400 px-2 py-2">{mobile.issue || "General Service"}</td>
+                <td className="border border-gray-400 px-2 py-2 text-right">{(typeof mobile.paid_amount !== 'undefined' && mobile.paid_amount !== null) ? mobile.paid_amount : 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Total paid for printable receipt */}
+        <div className="flex justify-end mt-3">
+          <div className="text-sm font-semibold">Total Paid: {totalPaid}</div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="text-center border-t-2 border-gray-800 pt-4 mt-6">
+        <p className="text-xs text-gray-600 mb-2">⭐ Thank you for choosing our service! ⭐</p>
+        <p className="text-xs text-gray-500">For support: {shopPhoneNumber || "9876543210"}</p>
+        <p className="text-xs text-gray-400 mt-2">Generated: {new Date().toLocaleString("en-IN")}</p>
       </div>
     </div>
-
-    {/* Services Table */}
-    <div className="mb-4">
-      <h3 className="font-bold text-gray-800 mb-3 text-center border-b border-gray-300 pb-1">
-        📱 DEVICES FOR SERVICE
-      </h3>
-      <table className="w-full border-collapse border border-gray-400 text-xs">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border border-gray-400 px-2 py-2 text-left">#</th>
-            <th className="border border-gray-400 px-2 py-2 text-left">Device</th>
-            <th className="border border-gray-400 px-2 py-2 text-left">Issue</th>
-          </tr>
-        </thead>
-        <tbody>
-          {clientData.MobileName.map((mobile, index) => (
-            <tr key={index} className="hover:bg-gray-50">
-              <td className="border border-gray-400 px-2 py-2 text-center font-semibold">
-                {index + 1}
-              </td>
-              <td className="border border-gray-400 px-2 py-2">
-                {mobile.mobile_name}
-              </td>
-              <td className="border border-gray-400 px-2 py-2">
-                {mobile.issue || "General Service"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-
-    {/* Footer */}
-    <div className="text-center border-t-2 border-gray-800 pt-4 mt-6">
-      <p className="text-xs text-gray-600 mb-2">
-        ⭐ Thank you for choosing our service! ⭐
-      </p>
-      <p className="text-xs text-gray-500">
-        For support: {shopPhoneNumber || "9876543210"}
-      </p>
-      <p className="text-xs text-gray-400 mt-2">
-        Generated: {new Date().toLocaleString("en-IN")}
-      </p>
-    </div>
-  </div>
-));
+  );
+});
 
 PrintableReceipt.displayName = "PrintableReceipt";
 
@@ -171,11 +169,12 @@ const generateEnhancedPDF = (clientData, shopPhoneNumber, shopAddress, shopEmail
   const mobileRows = clientData.MobileName.map((mobile, index) => [
     String(index + 1),
     mobile.mobile_name,
-    mobile.issue || "General Service",
+  mobile.issue || "General Service",
+  (typeof mobile.paid_amount !== 'undefined' && mobile.paid_amount !== null) ? String(mobile.paid_amount) : "0",
   ]);
 
   autoTable(doc, {
-    head: [["#", "Device", "Issue"]],
+    head: [["#", "Device", "Issue", "Paid"]],
     body: mobileRows,
     startY: yPosition,
     theme: "grid",
@@ -193,14 +192,27 @@ const generateEnhancedPDF = (clientData, shopPhoneNumber, shopAddress, shopEmail
     margin: { left: 5, right: 5 },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 27 }
+      1: { cellWidth: 25 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 15, halign: 'right' }
     }
   });
+ 
+  // Footer start a bit lower
+  const finalY = Math.max(doc.previousAutoTable?.finalY || 0, yPosition);
+  yPosition = finalY + 10;
 
-  // Footer with proper spacing
-  const finalY = doc.previousAutoTable?.finalY || yPosition + 30;
-  yPosition = finalY + 15;
+
+   // Total paid amount: place after the table and right-align near the page edge
+  const totalPaid = clientData.MobileName.reduce((sum, m) => sum + (Number(m.paid_amount) || 0), 0);
+  const tableEndY = doc.previousAutoTable?.finalY || yPosition;
+  // move a bit below the table
+  yPosition = tableEndY + 8;
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'bold');
+  // right-align total to the printable area (right margin ~75)
+  doc.text(`Total Paid: ${totalPaid}`, 75, yPosition, { align: 'right' });
+  yPosition += 10;
 
   // Line separator
   doc.line(5, yPosition, 75, yPosition);
@@ -215,6 +227,7 @@ const generateEnhancedPDF = (clientData, shopPhoneNumber, shopAddress, shopEmail
   doc.text(`Support: ${shopPhoneNumber || "9876543210"}`, 40, yPosition, { align: 'center' });
   yPosition += 6;
 
+ 
   doc.setFontSize(6);
   doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 40, yPosition, { align: 'center' });
 
@@ -278,6 +291,66 @@ const ReceiptGenerator = ({ clientData, shopPhoneNumber, closeModal, shopAddress
     }
   });
 
+  // Manual print fallback: serialize the receipt node into a new window and print it
+  const printManual = () => {
+    try {
+      const node = receiptRef && receiptRef.current;
+      if (!node) return;
+      // Attempt to include app stylesheet (if available) and provide fallback inline styles
+      const cssHref = (typeof window !== 'undefined' && window.location) ? `${window.location.origin}/styles.css` : '/styles.css';
+      const fallbackStyles = `
+        body{font-family: Arial,Helvetica,sans-serif; margin:0; padding:8px; color:#111}
+        .receipt-wrap{ width:80mm; box-sizing:border-box; margin:0 auto; }
+        h2{ margin:0 0 6px; font-size:16px; text-align:center }
+        .shop{ text-align:center; margin-bottom:6px }
+        table{ width:100%; border-collapse:collapse; margin-top:6px; font-size:12px }
+        th, td{ border:1px solid #333; padding:6px }
+        thead th{ background:#f3f3f3; font-weight:700; }
+        .right{ text-align:right }
+        .total{ text-align:right; font-weight:700; margin-top:8px }
+        footer{ margin-top:12px; text-align:center; font-size:11px; color:#555 }
+      `;
+
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title>` +
+        `<link rel="stylesheet" href="${cssHref}">` +
+        `<style>${fallbackStyles}</style></head><body><div class="receipt-wrap">${node.outerHTML}</div></body></html>`;
+      const w = window.open('', '_blank');
+      if (!w) { alert('Popup blocked: allow popups to print'); return; }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(() => { try { w.print(); w.close(); } catch (e) { /* ignore */ } }, 300);
+    } catch (e) {
+      console.error('Manual print failed:', e);
+    }
+  };
+
+  // Guarded print handler: wait briefly for the forwarded ref to mount before invoking print
+  const printIfReady = () => {
+    const maxAttempts = 12; // up to ~1.2s
+    let attempts = 0;
+
+    const attemptPrint = () => {
+      attempts += 1;
+      if (receiptRef && receiptRef.current) {
+        // Use manual print to avoid react-to-print console warning in some environments
+        printManual();
+        return;
+      }
+
+      if (attempts < maxAttempts) {
+        // small delay to allow React to mount the forwarded ref
+        setTimeout(attemptPrint, 100);
+        return;
+      }
+
+      console.warn('Print requested but receipt element did not mount in time. Please try again.');
+    };
+
+    attemptPrint();
+  };
+
   const handlePreview = () => {
     const finalAddress = profileAddress || shopAddress;
     const doc = generateEnhancedPDF(clientData, shopPhoneNumber, finalAddress, shopEmail, shopName);
@@ -311,7 +384,8 @@ const ReceiptGenerator = ({ clientData, shopPhoneNumber, closeModal, shopAddress
     const billNumber = clientData.bill_no || "N/A";
 
     const servicedMobiles = clientData.MobileName.map((device, index) => {
-      return `${index + 1}. 📱 ${device.mobile_name} - ${device.issue || "General Service"}`;
+  const paid = (typeof device.paid_amount !== 'undefined' && device.paid_amount !== null) ? device.paid_amount : 0;
+  return `${index + 1}. 📱 ${device.mobile_name} - ${device.issue || "General Service"} (Paid: ${paid})`;
     }).join("\n");
 
     const message = `🧾 *${shop}* - Service Receipt\n\n👤 Customer: ${customer}\n📞 Mobile: ${clientData.mobile_number}\n🧾 Bill No: ${billNumber}\n\n📱 *Devices:*\n${servicedMobiles}\n\n🔗 View Online: ${receiptLink}\n\n✨ Thank you for choosing our service!`;
@@ -364,7 +438,7 @@ const ReceiptGenerator = ({ clientData, shopPhoneNumber, closeModal, shopAddress
               {/* Action Buttons */}
               <div className="flex flex-wrap justify-center gap-3">
                 <button 
-                  onClick={handlePrint} 
+                  onClick={printIfReady} 
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   <IoMdPrint size={20} />

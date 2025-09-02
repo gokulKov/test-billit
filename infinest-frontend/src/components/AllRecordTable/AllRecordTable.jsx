@@ -468,12 +468,14 @@ const [shopAddressState, setShopAddressState] = useState("")
               selectedClient.owner_name || selectedClient.ownerName || shopOwnerName || "INFINFEST MOBILE SERVICE",
             bill_no: selectedClient.bill_no || selectedClient.billNo || "N/A",
             MobileName: selectedClient.MobileName.map((m) => ({
-              _id: m._id,
-              mobile_name: m.mobile_name || m.mobileName,
-              issue: m.issue,
-              added_date: m.added_date || m.addedDate,
-              delivery_date: m.delivery_date || m.deliveryDate || null,
-            })),
+                  _id: m._id,
+                  mobile_name: m.mobile_name || m.mobileName,
+                  issue: m.issue,
+                  added_date: m.added_date || m.addedDate,
+                  delivery_date: m.delivery_date || m.deliveryDate || null,
+                  // include paid amount so ReceiptGenerator can show accurate values
+                  paid_amount: typeof m.paid_amount !== 'undefined' && m.paid_amount !== null ? m.paid_amount : 0,
+                })),
           }}
           shopPhoneNumber={shopPhoneNumberState}
           shopAddress={shopAddressState}  
