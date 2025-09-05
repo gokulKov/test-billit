@@ -55,7 +55,7 @@ function BranchSupplyHistory({ salesUrl, token }) {
       <div className="table-scroll">
         {branchId ? (
           // Flatten all items for selected branch into a single table
-          <table className="pretty-table">
+          <table className="modern-table">
             <thead>
               <tr>
                

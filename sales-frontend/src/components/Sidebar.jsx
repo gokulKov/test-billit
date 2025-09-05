@@ -1,9 +1,9 @@
 function Sidebar({ active = 'bank', onSelect, planId, branchLimit, branchUser }) {
-  const Item = ({ id, label, icon = '•', locked = false, activeId, onClick }) => (
+  const Item = ({ id, label, icon = '📋', locked = false, activeId, onClick }) => (
     <a
       className={'nav-item ' + (activeId === id ? 'active' : '')}
-  href={"#" + id}
-  onClick={(e) => { e.preventDefault(); if (locked) return; onClick?.(id); try { location.hash = '#' + id; } catch {} }}
+      href={"#" + id}
+      onClick={(e) => { e.preventDefault(); if (locked) return; onClick?.(id); try { location.hash = '#' + id; } catch {} }}
     >
       <span className="icon">{icon}</span>
       <span>{label}</span>
@@ -12,49 +12,46 @@ function Sidebar({ active = 'bank', onSelect, planId, branchLimit, branchUser })
   );
 
   const canUseBranch = planId === 'sales-gold' || planId === 'sales-premium';
-
   const isBranch = !!branchUser;
 
   return (
     <aside className="sidebar">
-      <div className="brand">Fixel</div>
+      <div className="brand">
+        <h1>SalesPro</h1>
+        <p>Mobile Sales Management</p>
+      </div>
       <nav className="nav">
         {isBranch ? (
-          // Branch users see a minimal branch nav; first item is Create Bank per request
+          // Branch users see a minimal branch nav
           <>
-            <Item id="bank" label="Create Bank" icon={"🏦"} activeId={active} onClick={onSelect} />
-            <Item id="bank-history" label="Bank History" icon={"📜"} activeId={active} onClick={onSelect} />
-            <Item id="instock" label="In Stock" icon={"📦"} activeId={active} onClick={onSelect} />
-            <Item id="product-sales" label="Product Sales" icon={"🛍️"} activeId={active} onClick={onSelect} />
-            <Item id="seconds-sales" label="Seconds Sales" icon={"📊"} activeId={active} onClick={onSelect} />
-            <Item id="sales-track" label="Sales Track" icon={"📊"} activeId={active} onClick={onSelect} />
-            <Item id="branch-expense" label="New Expense" icon={"💸"} activeId={active} onClick={onSelect} />
-          
+            <Item id="bank" label="Payment Methods" icon={"💳"} activeId={active} onClick={onSelect} />
+            <Item id="bank-history" label="Payment History" icon={"📊"} activeId={active} onClick={onSelect} />
+            <Item id="instock" label="Inventory" icon={"📦"} activeId={active} onClick={onSelect} />
+            <Item id="product-sales" label="Point of Sale" icon={"🛒"} activeId={active} onClick={onSelect} />
+            <Item id="seconds-sales" label="Quick Sales" icon={"⚡"} activeId={active} onClick={onSelect} />
+            <Item id="sales-track" label="Sales Analytics" icon={"📈"} activeId={active} onClick={onSelect} />
+            <Item id="branch-expense" label="Expenses" icon={"💸"} activeId={active} onClick={onSelect} />
           </>
         ) : (
           // Admin / seller view
           <>
-            <Item id="bank" label="Create Bank" icon={"🏦"} activeId={active} onClick={onSelect} />
-            <Item id="bank-history" label="Bank History" icon={"📜"} activeId={active} onClick={onSelect} />
-            <Item id="supplier" label="Create Supplier" icon={"🛒"} activeId={active} onClick={onSelect} />
-            <Item id="instock" label="In Stock" icon={"📦"} activeId={active} onClick={onSelect} />
+            <Item id="bank" label="Payment Methods" icon={"💳"} activeId={active} onClick={onSelect} />
+            <Item id="bank-history" label="Payment History" icon={"📊"} activeId={active} onClick={onSelect} />
+            <Item id="supplier" label="Suppliers" icon={"🏢"} activeId={active} onClick={onSelect} />
+            <Item id="instock" label="Master Inventory" icon={"📦"} activeId={active} onClick={onSelect} />
             <Item
               id="branch"
-              label={canUseBranch
-                ? `Create Branch`
-                : 'Create Branch'}
-              icon={"🌿"}
+              label={canUseBranch ? `Branch Management` : 'Branch Management'}
+              icon={"🏪"}
               locked={!canUseBranch}
               activeId={active}
               onClick={onSelect}
             />
-              <Item id="branch-supply" label="Branch Supply" icon={"🚚"} activeId={active} onClick={onSelect} locked={!canUseBranch} />
-              <Item id="branch-supply-history" label="Branch Supply History" icon={"📋"} activeId={active} onClick={onSelect} locked={!canUseBranch} />
-            
-                {/* New admin-only items requested: Whatsapp Contact, Offer, Whatsapp Stock */}
-                <Item id="whatsapp-contact" label="Whatsapp Contact" icon={"💬"} activeId={active} onClick={onSelect} />
-                <Item id="offer" label="Offer" icon={"🏷️"} activeId={active} onClick={onSelect} />
-                <Item id="whatsapp-stock" label="Whatsapp Stock" icon={"📦"} activeId={active} onClick={onSelect} />
+            <Item id="branch-supply" label="Branch Supply" icon={"🚚"} activeId={active} onClick={onSelect} locked={!canUseBranch} />
+            <Item id="branch-supply-history" label="Supply History" icon={"📋"} activeId={active} onClick={onSelect} locked={!canUseBranch} />
+            <Item id="whatsapp-contact" label="WhatsApp Contacts" icon={"💬"} activeId={active} onClick={onSelect} />
+            <Item id="offer" label="Promotions" icon={"🎯"} activeId={active} onClick={onSelect} />
+            <Item id="whatsapp-stock" label="WhatsApp Inventory" icon={"📱"} activeId={active} onClick={onSelect} />
           </>
         )}
       </nav>

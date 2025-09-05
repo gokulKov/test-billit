@@ -120,57 +120,103 @@ function CreateSupplier({ salesUrl, token }) {
         </form>
       </div>
 
-      <div className="card mt-3 table-card">
-        <div className="table-title">Saved Suppliers</div>
-        {visible.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">📇</div>
-            <div className="empty-title">No Records Found</div>
-            <div className="empty-sub">No suppliers found. Create one above to get started.</div>
-          </div>
-        ) : (
-          <div className="table-scroll">
-            <table className="pretty-table">
-              <thead>
-                <tr>
-                  <th style={{width:80}}>S.No</th>
-                  <th>Supplier Name</th>
-                  <th>Agency Name</th>
-                  <th>Phone Number</th>
-                  <th>Address</th>
-                  <th>GST Number</th>
-                  <th>PAN Number</th>
-                  <th className="text-right">Supplier Amount</th>
-                  <th className="text-right">Items Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((r, i) => (
-                  <tr key={r._id || (startIndex + i)}>
-                    <td><span className="serial-pill">{startIndex + i}</span></td>
-                    <td><span className="cell-strong">{r.supplierName || '-'}</span></td>
-                    <td>{r.agencyName || '-'}</td>
-                    <td>{r.phoneNumber || '-'}</td>
-                    <td>{r.address || '-'}</td>
-                    <td>{r.gstNumber || '-'}</td>
-                    <td>{r.panNumber || '-'}</td>
-                    <td className="text-right">{supplierAmountMap[r._id] ? supplierAmountMap[r._id] : 0}</td>
-                    <td className="text-right">{supplierItemsCountMap[r._id] ? supplierItemsCountMap[r._id] : 0}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <div className="table-footer">
-          <div className="table-range">
-            {total === 0 ? 'Showing 1 to 0 of 0 results' : `Showing ${startIndex} to ${endIndex} of ${total} results`}
-          </div>
-          <div className="pager">
-            <button className="pager-btn" type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Previous</button>
-            <button className="pager-btn" type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Next</button>
+      {/* Suppliers Table */}
+      <div className="table-card">
+        <div className="table-header">
+          <div>
+            <h3 className="table-title">Suppliers</h3>
+            <p className="table-subtitle">Manage your supplier relationships</p>
           </div>
         </div>
+        
+        {visible.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">🏢</div>
+            <div className="empty-title">No Suppliers</div>
+            <div className="empty-description">Add your first supplier to get started</div>
+            <button 
+              className="empty-action" 
+              onClick={() => {
+                const input = document.querySelector('input[name="supplierName"]');
+                if (input) input.focus();
+              }}
+            >
+              🏢 Add Supplier
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="table-scroll">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th style={{width: '80px'}}>No.</th>
+                    <th>Supplier Name</th>
+                    <th>Agency Name</th>
+                    <th>Phone Number</th>
+                    <th>Address</th>
+                    <th>GST Number</th>
+                    <th>PAN Number</th>
+                    <th>Supplier Amount</th>
+                    <th>Items Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((r, i) => (
+                    <tr key={r._id || (startIndex + i)}>
+                      <td>
+                        <span className="serial-badge">{startIndex + i}</span>
+                      </td>
+                      <td>
+                        <span className="cell-strong">{r.supplierName || '-'}</span>
+                      </td>
+                      <td>{r.agencyName || '-'}</td>
+                      <td>{r.phoneNumber || '-'}</td>
+                      <td>{r.address || '-'}</td>
+                      <td>{r.gstNumber || '-'}</td>
+                      <td>{r.panNumber || '-'}</td>
+                      <td>
+                        <span className="amount-badge">
+                          {supplierAmountMap[r._id] ? supplierAmountMap[r._id] : 0}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="count-badge">
+                          {supplierItemsCountMap[r._id] ? supplierItemsCountMap[r._id] : 0}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="table-footer">
+              <div className="table-info">
+                {total === 0 ? 'No suppliers found' : `Showing ${startIndex} to ${endIndex} of ${total} suppliers`}
+              </div>
+              <div className="pagination">
+                <button 
+                  className="pagination-btn" 
+                  type="button" 
+                  onClick={() => setPage(p => Math.max(1, p - 1))} 
+                  disabled={page <= 1}
+                >
+                  ← Previous
+                </button>
+                <span className="pagination-info">Page {page} of {totalPages}</span>
+                <button 
+                  className="pagination-btn" 
+                  type="button" 
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+                  disabled={page >= totalPages}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

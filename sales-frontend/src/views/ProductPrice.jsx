@@ -99,89 +99,196 @@ function ProductPrice({ salesUrl, token }) {
 
   return (
     <div>
+      {/* Search Section */}
       <div className="card">
-        <h3>Product Price</h3>
-        <form onSubmit={showProduct} style={{ marginBottom: 12 }}>
-          <label>Product No</label><br />
-          <input value={productNo} onChange={e => setProductNo(e.target.value)} placeholder="Enter product no" />
-          <button className="btn" style={{ marginLeft: 8 }} onClick={showProduct} disabled={loading}>{loading ? 'Loading...' : 'Show'}</button>
-          <button type="button" className="btn secondary" style={{ marginLeft: 8 }} onClick={() => { setProductNo(''); setRows([]); setError(''); }}>Clear</button>
-        </form>
-
-        {error ? <div style={{ color: 'red' }}>{error}</div> : null}
-
-        <div className="card mt-3 table-card">
-          <div className="table-title">Product Results</div>
-          {rows.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">📦</div>
-              <div className="empty-title">No Records Found</div>
-              <div className="empty-sub">Enter a product no and click Show to fetch product price details.</div>
+        <div className="card-header">
+          <div>
+            <h3 className="card-title">Product Search</h3>
+            <p className="card-description">Search and manage product pricing for WhatsApp inventory</p>
+          </div>
+        </div>
+        
+        <form onSubmit={showProduct}>
+          <div className="form-grid form-grid-3">
+            <div className="form-group">
+              <label className="form-label required">Product Number</label>
+              <input 
+                value={productNo} 
+                onChange={e => setProductNo(e.target.value)} 
+                placeholder="Enter product number" 
+                className="form-input"
+                required
+              />
             </div>
-          ) : (
+          </div>
+          
+          <div className="btn-group mt-4">
+            <button 
+              className="btn btn-primary" 
+              onClick={showProduct} 
+              disabled={loading}
+              type="button"
+            >
+              {loading ? (
+                <span className="loading">
+                  <span className="spinner"></span>
+                  Searching...
+                </span>
+              ) : '🔍 Search Product'}
+            </button>
+            
+            <button 
+              type="button" 
+              className="btn btn-outline" 
+              onClick={() => { setProductNo(''); setRows([]); setError(''); }}
+            >
+              🗑️ Clear
+            </button>
+          </div>
+          
+          {error && (
+            <div className="alert alert-danger mt-4">
+              <div className="alert-icon">❌</div>
+              <div>{error}</div>
+            </div>
+          )}
+        </form>
+      </div>
+
+      {/* Results Table */}
+      <div className="table-card">
+        <div className="table-header">
+          <div>
+            <h3 className="table-title">Product Pricing</h3>
+            <p className="table-subtitle">Set pricing and supply quantities for WhatsApp inventory</p>
+          </div>
+        </div>
+        
+        {rows.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📦</div>
+            <div className="empty-title">No Products Found</div>
+            <div className="empty-description">Search for a product number to view pricing details</div>
+          </div>
+        ) : (
+          <>
             <div className="table-scroll">
-              <table className="pretty-table">
+              <table className="modern-table">
                 <thead>
                   <tr>
-                    <th style={{ width: 60 }}>S.No</th>
-                    <th>Product No</th>
-                    <th>Product Name</th>
-                    <th>Brand</th>
-                    <th>Model</th>
-                    <th>Qty</th>
-                    <th>Total Cost</th>
-                    <th>Selling Price</th>
-                    <th>Supply Qty</th>
-                     <th>Action</th>
+                    <th style={{ width: '60px' }}>No.</th>
+                    <th style={{ width: '120px' }}>Product No</th>
+                    <th style={{ width: '180px' }}>Product Name</th>
+                    <th style={{ width: '120px' }}>Brand</th>
+                    <th style={{ width: '120px' }}>Model</th>
+                    <th style={{ width: '80px' }}>Stock Qty</th>
+                    <th style={{ width: '110px' }}>Total Cost</th>
+                    <th style={{ width: '140px' }}>Selling Price</th>
+                    <th style={{ width: '120px' }}>Supply Qty</th>
+                    <th style={{ width: '100px' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r, i) => {
                     const key = r.productNo || r.productId || i;
                     const edit = rowEdits[key] || { sellPercent: '', supplyQty: '' };
+                    const availableQty = (r.qty != null) ? r.qty : (r.centralQty != null ? r.centralQty : 0);
+                    const cost = Number(r.costPrice ?? r.cost ?? r.totalCostPrice ?? r.totalCost ?? 0);
+                    const sellPct = Number(edit.sellPercent || 0);
+                    const calculatedPrice = sellPct ? (cost * (1 + sellPct / 100)) : Number(r.sellingPrice || 0);
+                    const supplyQty = Number(edit.supplyQty || 0);
+                    const isOverSupply = supplyQty > availableQty;
+                    
                     return (
-                    <tr key={key}>
-                      <td><span className="serial-pill">{i + 1}</span></td>
-                      <td><span className="cell-strong">{r.productNo || '-'}</span></td>
-                      <td>{r.productName || '-'}</td>
-                      <td>{r.brand || '-'}</td>
-                      <td>{r.model || '-'}</td>
-                      <td>{(r.qty != null) ? r.qty : (r.centralQty != null ? r.centralQty : '-')} {/* Available InStock quantity */}</td>
-                      <td>{(Number(r.totalCostPrice || r.totalCost || 0)).toFixed(2)}</td>
-                      <td>
-                        <div style={{display:'flex',flexDirection:'column'}}>
-                          <div>
-                            <input style={{ width: 80 }} placeholder="Sell %" value={edit.sellPercent}
-                              onChange={e => setRowEdits(s => ({ ...s, [key]: { ...edit, sellPercent: e.target.value } }))} /> %
+                      <tr key={key}>
+                        <td>
+                          <span className="serial-badge">{i + 1}</span>
+                        </td>
+                        <td>
+                          <div className="product-cell">
+                            <span className="product-code">{r.productNo || '-'}</span>
                           </div>
-                          <div style={{fontSize:12,color:'#666'}}>{(() => {
-                            const pct = Number(edit.sellPercent || 0);
-                            const cost = Number(r.costPrice ?? r.cost ?? r.totalCostPrice ?? r.totalCost ?? 0);
-                            const sp = pct ? (cost * (1 + pct / 100)) : Number(r.sellingPrice || 0);
-                            return sp ? currency(Number(sp.toFixed(2))) : '-';
-                          })()}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <input style={{ width: 80 }} placeholder="Supply Qty" type="number" min={0} max={r.qty != null ? r.qty : (r.centralQty != null ? r.centralQty : 99999)} value={edit.supplyQty}
-                          onChange={e => setRowEdits(s => ({ ...s, [key]: { ...edit, supplyQty: e.target.value } }))} />
-                        {Number(edit.supplyQty) > (r.qty != null ? r.qty : (r.centralQty != null ? r.centralQty : 99999)) && (
-                          <div style={{ color: 'red', fontSize: 12 }}>Exceeds available stock</div>
-                        )}
-                      </td>
-                      <td>
-                        <button className="btn" onClick={() => saveWhatsappStock(key, r)}
-                          disabled={edit.saving || Number(edit.supplyQty) > (r.qty != null ? r.qty : (r.centralQty != null ? r.centralQty : 99999))}
-                        >{edit.saving ? 'Saving...' : 'Save'}</button>
-                      </td>
-                    </tr>
+                        </td>
+                        <td>
+                          <div className="product-cell">
+                            <span className="cell-strong">{r.productName || '-'}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="brand-text">{r.brand || '-'}</span>
+                        </td>
+                        <td>
+                          <span className="model-text">{r.model || '-'}</span>
+                        </td>
+                        <td>
+                          <span className="count-badge">{availableQty}</span>
+                        </td>
+                        <td>
+                          <span className="amount-badge">
+                            {currency(Number(r.totalCostPrice || r.totalCost || 0))}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="pricing-cell">
+                            <div className="form-group mb-2">
+                              <div className="input-group">
+                                <input 
+                                  type="number"
+                                  className="form-input form-input-sm"
+                                  style={{ width: '80px' }}
+                                  placeholder="Sell %" 
+                                  value={edit.sellPercent}
+                                  onChange={e => setRowEdits(s => ({ ...s, [key]: { ...edit, sellPercent: e.target.value } }))} 
+                                />
+                                <span className="input-suffix">%</span>
+                              </div>
+                            </div>
+                            <div className="calculated-price">
+                              {calculatedPrice ? currency(Number(calculatedPrice.toFixed(2))) : '-'}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="supply-cell">
+                            <div className="form-group">
+                              <input 
+                                type="number"
+                                className={`form-input form-input-sm ${isOverSupply ? 'error' : ''}`}
+                                style={{ width: '80px' }}
+                                placeholder="Qty" 
+                                min={0} 
+                                max={availableQty}
+                                value={edit.supplyQty}
+                                onChange={e => setRowEdits(s => ({ ...s, [key]: { ...edit, supplyQty: e.target.value } }))} 
+                              />
+                            </div>
+                            {isOverSupply && (
+                              <div className="error-text">Exceeds stock</div>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <button 
+                            className="btn btn-sm btn-primary" 
+                            onClick={() => saveWhatsappStock(key, r)}
+                            disabled={edit.saving || isOverSupply}
+                          >
+                            {edit.saving ? (
+                              <span className="loading">
+                                <span className="spinner"></span>
+                                Saving...
+                              </span>
+                            ) : '💾 Save'}
+                          </button>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -31,22 +31,64 @@ function BranchLogin({ salesUrl }) {
   };
 
   return (
-    <div className="card auth-card">
-      <h3>Branch Login</h3>
-      <form onSubmit={submit}>
-        <div className="mt-2">
-          <label>Email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="auth-logo">🏪</div>
+          <h2 className="auth-title">Branch Login</h2>
+          <p className="auth-subtitle">Sign in to your branch account</p>
         </div>
-        <div className="mt-2">
-          <label>Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+        
+        <form onSubmit={submit} className="auth-form">
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input 
+              type="email" 
+              className="form-input"
+              placeholder="Enter your email"
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              required 
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input 
+              type="password" 
+              className="form-input"
+              placeholder="Enter your password"
+              value={password} 
+              onChange={e => setPassword(e.target.value)} 
+              required 
+            />
+          </div>
+          
+          <button className="btn btn-primary w-full" type="submit" disabled={loading}>
+            {loading ? (
+              <span className="loading">
+                <span className="spinner"></span>
+                Signing in...
+              </span>
+            ) : 'Sign In'}
+          </button>
+        </form>
+        
+        {message && (
+          <div className={`alert ${message.includes('Welcome') ? 'alert-success' : 'alert-danger'}`}>
+            <div className="alert-icon">
+              {message.includes('Welcome') ? '✅' : '❌'}
+            </div>
+            <div>{message}</div>
+          </div>
+        )}
+        
+        <div className="auth-footer">
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+            Need help? Contact your administrator
+          </p>
         </div>
-        <div className="row mt-3">
-          <button className="btn" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
-        </div>
-      </form>
-      {message && <div className="mt-2">{message}</div>}
+      </div>
     </div>
   );
 }

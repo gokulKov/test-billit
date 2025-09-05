@@ -89,7 +89,7 @@ function WhatsappContact({ salesUrl, token }) {
           </div>
         ) : (
           <div className="table-scroll">
-            <table className="pretty-table">
+            <table className="modern-table">
               <thead>
                 <tr>
                   <th style={{width:80}}>S.No</th>
@@ -102,7 +102,7 @@ function WhatsappContact({ salesUrl, token }) {
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={r._id || i}>
-                    <td><span className="serial-pill">{i+1}</span></td>
+                    <td><span className="serial-badge">{i+1}</span></td>
                     <td><span className="cell-strong">{r.name || '-'}</span></td>
                     <td>{r.number || '-'}</td>
                     <td>{r.district || '-'}</td>

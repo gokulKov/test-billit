@@ -44,52 +44,152 @@ function BankHistory({ salesUrl, token }) {
   };
 
   return (
-    <div className="card table-card">
-      <div className="row" style={{padding:'12px 12px 0 12px'}}>
-        <div className="col">
-          <label>Filter by Bank</label>
-          <select value={bankId} onChange={onBankChange}>
-            {/* <option value="">All banks</option> */}
-            {banks.map(b => <option key={b._id} value={b._id}>{b.bankName || b.accountNumber || b._id}</option>)}
-          </select>
+    <div>
+      {/* Statistics Cards */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-header">
+            <div className="stat-icon">💰</div>
+            <div>
+              <div className="stat-label">Total Transactions</div>
+              <div className="stat-value">{rows.length}</div>
+            </div>
+          </div>
+          <div className="stat-change">All payment activities</div>
+        </div>
+        
+        <div className="stat-card secondary">
+          <div className="stat-header">
+            <div className="stat-icon" style={{background: 'var(--gradient-secondary)'}}>📈</div>
+            <div>
+              <div className="stat-label">Total Inflow</div>
+              <div className="stat-value">{currency(rows.filter(r => r.amount > 0).reduce((sum, r) => sum + r.amount, 0))}</div>
+            </div>
+          </div>
+          <div className="stat-change positive">Money received</div>
+        </div>
+        
+        <div className="stat-card accent">
+          <div className="stat-header">
+            <div className="stat-icon" style={{background: 'var(--gradient-accent)'}}>📉</div>
+            <div>
+              <div className="stat-label">Total Outflow</div>
+              <div className="stat-value">{currency(Math.abs(rows.filter(r => r.amount < 0).reduce((sum, r) => sum + r.amount, 0)))}</div>
+            </div>
+          </div>
+          <div className="stat-change negative">Money spent</div>
         </div>
       </div>
-      <div className="table-scroll">
-        <table className="pretty-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Bank</th>
-              <th>Type</th>
-              <th className="text-right">Amount</th>
-              <th>Reference</th>
-              <th>Supplier</th>
-              <th className="text-right">Balance After</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr><td colSpan={7}>
-                <div className="empty-state">
-                  <div className="empty-icon">📜</div>
-                  <div className="empty-title">No Transactions</div>
-                </div>
-              </td></tr>
-            ) : rows.map(r => (
-              <tr key={r._id}>
-                <td>{new Date(r.createdAt).toLocaleString()}</td>
-                <td>{r.bank_id?.bankName || '-'}</td>
-                <td>{r.type}</td>
-                <td className="text-right">{currency(r.amount)}</td>
-                <td>{formatReference(r.reference)}</td>
-                <td>{r.supplier_id?.supplierName || '-'}</td>
-                <td className="text-right">{currency(r.balanceAfter)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {/* Filters Section */}
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <h3 className="card-title">Transaction Filters</h3>
+            <p className="card-description">Filter payment history by bank or criteria</p>
+          </div>
+        </div>
+        
+        <div className="form-grid form-grid-3">
+          <div className="form-group">
+            <label className="form-label">Filter by Bank</label>
+            <select value={bankId} onChange={onBankChange} className="form-input">
+              <option value="">All Banks</option>
+              {banks.map(b => 
+                <option key={b._id} value={b._id}>
+                  {b.bankName || b.accountNumber || b._id}
+                </option>
+              )}
+            </select>
+          </div>
+        </div>
       </div>
-      {error ? <div className="mt-2 text-danger" style={{padding:'0 12px 12px'}}>{error}</div> : null}
+
+      {/* Payment History Table */}
+      <div className="table-card">
+        <div className="table-header">
+          <div>
+            <h3 className="table-title">Payment Transactions</h3>
+            <p className="table-subtitle">Complete history of all payment activities</p>
+          </div>
+        </div>
+        
+        {rows.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">💳</div>
+            <div className="empty-title">No Payment History</div>
+            <div className="empty-description">Payment transactions will appear here once you start making payments</div>
+          </div>
+        ) : (
+          <>
+            <div className="table-scroll">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th style={{width: '180px'}}>Date & Time</th>
+                    <th style={{width: '150px'}}>Bank Account</th>
+                    <th style={{width: '100px'}}>Type</th>
+                    <th style={{width: '120px'}}>Amount</th>
+                    <th style={{width: '140px'}}>Reference</th>
+                    <th style={{width: '150px'}}>Supplier</th>
+                    <th style={{width: '120px'}}>Balance After</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r._id}>
+                      <td>
+                        <div className="datetime-cell">
+                          <div className="date-part">{new Date(r.createdAt).toLocaleDateString()}</div>
+                          <div className="time-part">{new Date(r.createdAt).toLocaleTimeString()}</div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="bank-cell">
+                          <span className="cell-strong">{r.bank_id?.bankName || 'Unknown Bank'}</span>
+                          <div className="cell-sub">{r.bank_id?.accountNumber || '-'}</div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${r.amount > 0 ? 'success' : 'danger'}`}>
+                          {r.type}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`amount-badge ${r.amount > 0 ? 'positive' : 'negative'}`}>
+                          {currency(r.amount)}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="reference-cell">
+                          {formatReference(r.reference)}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="supplier-cell">
+                          {r.supplier_id?.supplierName || '-'}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="balance-badge">
+                          {currency(r.balanceAfter)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+        
+        {error && (
+          <div className="alert alert-danger">
+            <div className="alert-icon">❌</div>
+            <div>{error}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

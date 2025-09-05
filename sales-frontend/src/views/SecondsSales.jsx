@@ -219,7 +219,7 @@ function SecondsSales({ salesUrl, token }) {
       <div className="card mt-3 table-card">
         <div className="table-title">Saved Entries</div>
         <div className="table-scroll">
-          <table className="pretty-table">
+          <table className="modern-table">
             <thead>
               <tr>
                 <th>S.No</th>
@@ -235,7 +235,7 @@ function SecondsSales({ salesUrl, token }) {
             <tbody>
               {entries.map((r, i) => (
                 <tr key={r._id || i} style={{cursor:'pointer'}} onClick={() => { try { location.hash = '#seconds-sales-view-' + (r._id || i); } catch {} }}>
-                  <td><span className="serial-pill">{i + 1}</span></td>
+                  <td><span className="serial-badge">{i + 1}</span></td>
                   <td>{r.mobileName || '-'}</td>
                   <td>{r.model || '-'}</td>
                   <td>{r.imeNo || '-'}</td>

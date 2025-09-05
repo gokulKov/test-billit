@@ -72,98 +72,201 @@ function CreateBank({ salesUrl, token }) {
   return (
     <div>
       <div className="card">
+        <div className="card-header">
+          <div>
+            <h3 className="card-title">Create Payment Method</h3>
+            <p className="card-description">Add new bank account or payment method</p>
+          </div>
+        </div>
+        
         <form onSubmit={submit}>
-          <div className="row">
-            <div className="col">
-              <label>Bank Name</label>
-              <input name="bankName" value={form.bankName} onChange={onChange} placeholder="Optional" />
+          <div className="form-grid form-grid-2">
+            <div className="form-group">
+              <label className="form-label">Bank Name</label>
+              <input 
+                name="bankName" 
+                value={form.bankName} 
+                onChange={onChange} 
+                placeholder="e.g., State Bank of India" 
+                className="form-input"
+              />
             </div>
-            <div className="col">
-              <label>Account Number</label>
-              <input name="accountNumber" value={form.accountNumber} onChange={onChange} placeholder="Optional" />
+            <div className="form-group">
+              <label className="form-label">Account Number</label>
+              <input 
+                name="accountNumber" 
+                value={form.accountNumber} 
+                onChange={onChange} 
+                placeholder="Account number" 
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Holder Name</label>
+              <input 
+                name="holderName" 
+                value={form.holderName} 
+                onChange={onChange} 
+                placeholder="Account holder name" 
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Address</label>
+              <input 
+                name="address" 
+                value={form.address} 
+                onChange={onChange} 
+                placeholder="Bank address" 
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Phone Number</label>
+              <input 
+                name="phoneNumber" 
+                value={form.phoneNumber} 
+                onChange={onChange} 
+                placeholder="Contact number" 
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Account Balance</label>
+              <input 
+                name="accountBalance" 
+                type="number" 
+                value={form.accountBalance} 
+                onChange={onChange} 
+                placeholder="0.00" 
+                className="form-input"
+              />
             </div>
           </div>
-          <div className="row mt-2">
-            <div className="col">
-              <label>Holder Name</label>
-              <input name="holderName" value={form.holderName} onChange={onChange} placeholder="Optional" />
-            </div>
-            <div className="col">
-              <label>Address</label>
-              <input name="address" value={form.address} onChange={onChange} placeholder="Optional" />
-            </div>
+          
+          <div className="btn-group mt-4">
+            <button className="btn btn-primary" type="submit" disabled={saving}>
+              {saving ? (
+                <span className="loading">
+                  <span className="spinner"></span>
+                  Saving...
+                </span>
+              ) : '+ Add Payment Method'}
+            </button>
           </div>
-          <div className="row mt-2">
-            <div className="col">
-              <label>Phone Number</label>
-              <input name="phoneNumber" value={form.phoneNumber} onChange={onChange} placeholder="Optional" />
+          
+          {error && (
+            <div className="alert alert-danger mt-4">
+              <div className="alert-icon">❌</div>
+              <div>{error}</div>
             </div>
-            <div className="col">
-              <label>Account Balance</label>
-              <input name="accountBalance" type="number" value={form.accountBalance} onChange={onChange} placeholder="Optional" />
-            </div>
-          </div>
-          <div className="row mt-3">
-            <button className="btn" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-          </div>
-          {error ? <div className="mt-2 text-danger">{error}</div> : null}
+          )}
         </form>
       </div>
 
-      <div className="stats-row">
+      {/* Statistics Cards */}
+      <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-label">Total Balance Amount</div>
-          <div className="stat-value">{formatCurrency(totalBalance)}</div>
+          <div className="stat-header">
+            <div className="stat-icon">💰</div>
+            <div>
+              <div className="stat-label">Total Balance</div>
+              <div className="stat-value">{formatCurrency(totalBalance)}</div>
+            </div>
+          </div>
+          <div className="stat-change positive">Across all accounts</div>
         </div>
       </div>
 
-      <div className="card mt-3 table-card">
-        <div className="table-title">Saved Banks</div>
-        {visible.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">📄</div>
-            <div className="empty-title">No Records Found</div>
-            <div className="empty-sub">No banks found. Create one above to get started.</div>
-          </div>
-        ) : (
-          <div className="table-scroll">
-            <table className="pretty-table">
-              <thead>
-                <tr>
-                  <th style={{width:80}}>S.No</th>
-                    <th>Branch</th>
-                  <th>Bank Name</th>
-                  <th>Account Number</th>
-                  <th>Holder Name</th>
-                  <th>Phone Number</th>
-                  <th className="text-right">Balance Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-        {visible.map((r, i) => (
-                  <tr key={r._id || (startIndex + i)}>
-                    <td><span className="serial-pill">{startIndex + i}</span></td>
-          <td>{r.branchName || '-'}</td>
-                    <td><span className="cell-strong">{r.bankName || '-'}</span></td>
-                    <td>{r.accountNumber || '-'}</td>
-                    <td>{r.holderName || '-'}</td>
-                    <td>{r.phoneNumber || '-'}</td>
-                    <td className="text-right">{r.accountBalance === 0 ? 0 : (r.accountBalance ?? '-')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <div className="table-footer">
-          <div className="table-range">
-            {total === 0 ? 'Showing 1 to 0 of 0 results' : `Showing ${startIndex} to ${endIndex} of ${total} results`}
-          </div>
-          <div className="pager">
-            <button className="pager-btn" type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Previous</button>
-            <button className="pager-btn" type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Next</button>
+      {/* Payment Methods Table */}
+      <div className="table-card">
+        <div className="table-header">
+          <div>
+            <h3 className="table-title">Payment Methods</h3>
+            <p className="table-subtitle">Manage your bank accounts and payment methods</p>
           </div>
         </div>
+        
+        {visible.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">�</div>
+            <div className="empty-title">No Payment Methods</div>
+            <div className="empty-description">Add your first bank account or payment method to get started</div>
+            <button 
+              className="empty-action" 
+              onClick={() => {
+                const input = document.querySelector('input[name="bankName"]');
+                if (input) input.focus();
+              }}
+            >
+              💳 Add Payment Method
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="table-scroll">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th style={{width: '80px'}}>No.</th>
+                    <th>Branch</th>
+                    <th>Bank Name</th>
+                    <th>Account Number</th>
+                    <th>Holder Name</th>
+                    <th>Phone Number</th>
+                    <th>Balance Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((r, i) => (
+                    <tr key={r._id || (startIndex + i)}>
+                      <td>
+                        <span className="serial-badge">{startIndex + i}</span>
+                      </td>
+                      <td>{r.branchName || '-'}</td>
+                      <td>
+                        <span className="cell-strong">{r.bankName || '-'}</span>
+                      </td>
+                      <td>{r.accountNumber || '-'}</td>
+                      <td>{r.holderName || '-'}</td>
+                      <td>{r.phoneNumber || '-'}</td>
+                      <td>
+                        <span className="amount-badge">
+                          {formatCurrency(r.accountBalance || 0)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="table-footer">
+              <div className="table-info">
+                {total === 0 ? 'No payment methods found' : `Showing ${startIndex} to ${endIndex} of ${total} payment methods`}
+              </div>
+              <div className="pagination">
+                <button 
+                  className="pagination-btn" 
+                  type="button" 
+                  onClick={() => setPage(p => Math.max(1, p - 1))} 
+                  disabled={page <= 1}
+                >
+                  ← Previous
+                </button>
+                <span className="pagination-info">Page {page} of {totalPages}</span>
+                <button 
+                  className="pagination-btn" 
+                  type="button" 
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+                  disabled={page >= totalPages}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

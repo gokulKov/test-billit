@@ -95,54 +95,135 @@ function InStockView({ salesUrl, token }) {
 
   return (
     <div>
-      <div className="row" style={{justifyContent:'space-between'}}>
+      {/* Statistics Cards */}
+      <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-label">Selected Supplier Total Amount</div>
-          <div className="stat-value">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(selectedSupplierTotal)}</div>
+          <div className="stat-header">
+            <div className="stat-icon">📦</div>
+            <div>
+              <div className="stat-label">Total Products</div>
+              <div className="stat-value">{entries.reduce((sum, e) => sum + (Array.isArray(e.items) ? e.items.length : 0), 0)}</div>
+            </div>
+          </div>
+          <div className="stat-change">Unique items in stock</div>
         </div>
-        <button className="btn" type="button" onClick={() => setOpen(true)}>Add In Stock</button>
+        
+        <div className="stat-card secondary">
+          <div className="stat-header">
+            <div className="stat-icon" style={{background: 'var(--gradient-secondary)'}}>📊</div>
+            <div>
+              <div className="stat-label">Total Quantity</div>
+              <div className="stat-value">{entries.reduce((sum, e) => sum + (Array.isArray(e.items) ? e.items.reduce((itemSum, it) => itemSum + (Number(it.quantity) || 0), 0) : 0), 0)}</div>
+            </div>
+          </div>
+          <div className="stat-change">Items available</div>
+        </div>
+        
+        <div className="stat-card accent">
+          <div className="stat-header">
+            <div className="stat-icon" style={{background: 'var(--gradient-accent)'}}>💰</div>
+            <div>
+              <div className="stat-label">Inventory Value</div>
+              <div className="stat-value">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(selectedSupplierTotal)}</div>
+            </div>
+          </div>
+          <div className="stat-change">Total stock value</div>
+        </div>
       </div>
 
-      <div className="card mt-3 table-card">
-        <div className="table-title">In Stock Entries</div>
+      {/* Action Section */}
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <h3 className="card-title">Inventory Management</h3>
+            <p className="card-description">Add new products to your inventory</p>
+          </div>
+          <button className="btn btn-primary" type="button" onClick={() => setOpen(true)}>
+            📦 Add New Stock
+          </button>
+        </div>
+      </div>
+
+      {/* Inventory Table */}
+      <div className="table-card">
+        <div className="table-header">
+          <div>
+            <h3 className="table-title">Master Inventory</h3>
+            <p className="table-subtitle">Complete list of all products in your inventory</p>
+          </div>
+        </div>
+        
         {entries.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📦</div>
-            <div className="empty-title">No Entries</div>
-            <div className="empty-sub">Use "Add In Stock" to create your first entry.</div>
+            <div className="empty-title">No Inventory Items</div>
+            <div className="empty-description">Add your first product to inventory to get started</div>
+            <button 
+              className="empty-action" 
+              onClick={() => setOpen(true)}
+            >
+              📦 Add First Product
+            </button>
           </div>
         ) : (
-          <div className="table-scroll">
-            <table className="pretty-table">
-                  <thead>
-                    <tr>
-                      <th>Supplier</th>
-                      <th>Product No</th>
-                      <th>Product Name</th>
-                      <th>Brand</th>
-                      <th>Model</th>
-                      <th>Qty</th>
-                      <th>Total Qty</th>
-                      <th>Cost Price</th>
-                      <th>Product Validity</th>
-                      <th>Product Date</th>
-                      <th>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+          <>
+            <div className="table-scroll">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th style={{width: '150px'}}>Supplier</th>
+                    <th style={{width: '120px'}}>Product No</th>
+                    <th style={{width: '180px'}}>Product Name</th>
+                    <th style={{width: '120px'}}>Brand</th>
+                    <th style={{width: '120px'}}>Model</th>
+                    <th style={{width: '80px'}}>Qty</th>
+                    <th style={{width: '90px'}}>Total Qty</th>
+                    <th style={{width: '110px'}}>Cost Price</th>
+                    <th style={{width: '120px'}}>Validity</th>
+                    <th style={{width: '120px'}}>Product Date</th>
+                    <th style={{width: '140px'}}>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
                     {entries.flatMap((e) => (
                         (Array.isArray(e.items) ? e.items : []).map((it, idx) => (
                         <tr key={`${e._id}-${idx}`}>
-                          <td><span className="cell-strong">{e.supplier_id?.supplierName || e.supplier_id?.agencyName || '-'}</span></td>
-                          <td>{it.productNo || '-'}</td>
-                          <td>{it.productName || '-'}</td>
-                          <td>{it.brand || '-'}</td>
-                          <td>{it.model || '-'}</td>
-                          <td>{it.quantity ?? '-'}</td>
-                          <td>{it.totalQuantity ?? it.quantity ?? '-'}</td>
-                          {/* shippedQty = totalQuantity - current quantity (how much was transferred to branches) */}
-                          <td>{it.costPrice ?? '-'}</td>
-                          <td>{it.validity ? new Date(it.validity).toLocaleDateString() : '-'}</td>
+                          <td>
+                            <div className="supplier-cell">
+                              <span className="cell-strong">{e.supplier_id?.supplierName || 'Unknown Supplier'}</span>
+                              <div className="cell-sub">{e.supplier_id?.agencyName || '-'}</div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="product-code">{it.productNo || '-'}</span>
+                          </td>
+                          <td>
+                            <div className="product-cell">
+                              <span className="cell-strong">{it.productName || '-'}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="brand-text">{it.brand || '-'}</span>
+                          </td>
+                          <td>
+                            <span className="model-text">{it.model || '-'}</span>
+                          </td>
+                          <td>
+                            <span className="count-badge">{it.quantity ?? 0}</span>
+                          </td>
+                          <td>
+                            <span className="count-badge">{it.totalQuantity ?? it.quantity ?? 0}</span>
+                          </td>
+                          <td>
+                            <span className="amount-badge">
+                              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(it.costPrice || 0)}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="date-cell">
+                              {it.validity ? new Date(it.validity).toLocaleDateString() : '-'}
+                            </div>
+                          </td>
                           {/* Product Date: days in store (inclusive from createdAt to today) */}
                           <td>{(() => {
                               try {
@@ -158,10 +239,11 @@ function InStockView({ salesUrl, token }) {
                       ))
                     ))}
                   </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
 
       {open && (
         <div className="modal-backdrop">

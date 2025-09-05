@@ -119,7 +119,7 @@ function SalesTrack({ salesUrl, token }) {
         {error ? <div className="mt-2 text-danger">{error}</div> : null}
         {loading ? <div>Loading…</div> : (
           <div className="table-scroll mt-2">
-            <table className="pretty-table">
+            <table className="modern-table">
               <thead>
                 <tr>
                   <th>Date</th>

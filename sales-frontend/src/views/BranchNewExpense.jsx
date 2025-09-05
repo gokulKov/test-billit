@@ -186,12 +186,12 @@ function BranchNewExpense({ salesUrl, token }) {
             </div>
           </div>
           <div style={{ marginTop: 10, color: '#666' }}>
-            <small>sales Revenue - Stock Revenue = Total Revenue - Total Expense = Net Revenue</small>
+            {/* <small>sales Revenue - Stock Revenue = Total Revenue - Total Expense = Net Revenue</small> */}
           </div>
         </div>
         <div className="table-title">Recent Expenses</div>
         <div className="table-scroll">
-          <table className="pretty-table">
+          <table className="modern-table">
             <thead>
               <tr>
                 <th style={{width:80}}>S.No</th>
@@ -218,7 +218,7 @@ function BranchNewExpense({ salesUrl, token }) {
                   if (filtered.length === 0) return (<tr><td colSpan={4}><div className="empty-state"><div className="empty-icon">💸</div><div className="empty-title">No expenses found for selected date</div></div></td></tr>);
                   return filtered.map((r, i) => (
                     <tr key={r._id || i}>
-                      <td><span className="serial-pill">{i + 1}</span></td>
+                      <td><span className="serial-badge">{i + 1}</span></td>
                       <td>{r.title || '-'}</td>
                       <td className="text-right">{currency(Number(r.amount) || 0)}</td>
                       <td>{r.date ? new Date(r.date).toLocaleString() : (r.createdAt ? new Date(r.createdAt).toLocaleString() : '-')}</td>

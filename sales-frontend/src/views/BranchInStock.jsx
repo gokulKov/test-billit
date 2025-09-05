@@ -40,7 +40,7 @@ function BranchInStock({ salesUrl, token }) {
           </div>
         ) : (
           <div className="table-scroll">
-            <table className="pretty-table">
+            <table className="modern-table">
               <thead>
                 <tr>
                   <th>Product No</th>
