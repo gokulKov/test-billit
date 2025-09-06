@@ -15,10 +15,7 @@ exports.createInStock = async (req, res) => {
     if (!supplier_id) return res.status(400).json({ success: false, message: 'supplier_id is required' });
   if (!bank_id) return res.status(400).json({ success: false, message: 'bank_id is required' });
 
-    const totalCost = (items || []).reduce((s, it) => s + ((Number(it.costPrice) || 0) * (Number(it.quantity) || 1)), 0);
-    if (Number(supplierAmount) !== totalCost) {
-      return res.status(400).json({ success: false, message: 'Supplier amount must equal sum of costPrice x quantity' });
-    }
+  // Removed supplierAmount vs totalCost validation as requested
 
     // Fetch and validate bank balance
     const bank = await Bank.findOne({ _id: bank_id, $or: [{ shop_id }, { mysql_user_id: req.user.userId }] });
@@ -33,17 +30,29 @@ exports.createInStock = async (req, res) => {
       supplier_id,
       bank_id,
       supplierAmount: Number(supplierAmount) || 0,
-      items: (items || []).map(i => ({
-        productNo: i.productNo || '',
-        productName: i.productName || '',
-        brand: i.brand || '',
-        model: i.model || '',
-  quantity: Number(i.quantity) || 1,
-  totalQuantity: Number(i.quantity) || 1,
-        costPrice: Number(i.costPrice) || 0,
-        sellingPrice: Number(i.sellingPrice) || 0,
-        validity: i.validity ? new Date(i.validity) : undefined,
-      })),
+      items: (items || []).map(i => {
+        // Helper to generate random alphanumeric string (2-9 chars)
+        function randomProductNo() {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+          const len = Math.floor(Math.random() * 8) + 2;
+          let str = '';
+          for (let j = 0; j < len; j++) {
+            str += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          return str;
+        }
+        return {
+          productNo: i.productNo && i.productNo.trim() ? i.productNo : randomProductNo(),
+          productName: i.productName || '',
+          brand: i.brand || '',
+          model: i.model || '',
+          quantity: Number(i.quantity) || 1,
+          totalQuantity: Number(i.quantity) || 1,
+          costPrice: Number(i.costPrice) || 0,
+          sellingPrice: Number(i.sellingPrice) || 0,
+          validity: i.validity ? new Date(i.validity) : undefined,
+        };
+      }),
       createdBy: String(userId || ''),
       updatedBy: String(userId || ''),
     });

@@ -51,6 +51,17 @@ function InStockView({ salesUrl, token }) {
     setError('');
   };
 
+  // Helper to generate random alphanumeric string (2-9 chars)
+  function randomProductNo() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const len = Math.floor(Math.random() * 8) + 2; // 2 to 9
+    let str = '';
+    for (let i = 0; i < len; i++) {
+      str += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return str;
+  }
+
   const submit = async () => {
     setSaving(true);
     setError('');
@@ -63,7 +74,7 @@ function InStockView({ salesUrl, token }) {
           bank_id: bankId,
           supplierAmount: Number(supplierAmount) || 0,
           items: items.map(it => ({
-            productNo: it.productNo || '',
+            productNo: it.productNo && it.productNo.trim() ? it.productNo : randomProductNo(),
             productName: it.productName,
             brand: it.brand,
             model: it.model,
