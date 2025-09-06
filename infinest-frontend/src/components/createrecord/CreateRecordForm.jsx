@@ -220,8 +220,9 @@ export default function CreateRecordForm({ shopId, isLimitReached, setIsLimitRea
 
     if (!formData.noOfMobile || formData.noOfMobile < 1 || formData.noOfMobile > 15) return false
     // Validate bill number format and presence
-    if (!formData.billNo || formData.billNo.trim().length === 0) return false
-    if (!formData.technician || formData.technician.trim().length < 2) return false
+  if (!formData.billNo || formData.billNo.trim().length === 0) return false
+  // Technician is optional. If provided, enforce a minimum length of 2 chars.
+  if (formData.technician && formData.technician.trim().length > 0 && formData.technician.trim().length < 2) return false
 
     return true
   }

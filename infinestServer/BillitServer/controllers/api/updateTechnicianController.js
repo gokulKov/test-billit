@@ -4,14 +4,13 @@ const updateTechnician = async (req, res) => {
   const { id } = req.params;
   const { technicianName } = req.body;
 
-  if (!technicianName) {
-    return res.status(400).json({ error: "technicianName is required." });
-  }
+  // Technician name is optional. If not provided, store as empty string.
+  const technicianValue = technicianName || "";
 
   try {
     const updatedMobile = await Mobile.findByIdAndUpdate(
       id,
-      { technician_name: technicianName },
+  { technician_name: technicianValue },
       { new: true }
     );
 
@@ -30,3 +29,4 @@ const updateTechnician = async (req, res) => {
 };
 
 module.exports = { updateTechnician };
+
