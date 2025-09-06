@@ -286,7 +286,7 @@ function ProductSales({ salesUrl, token }) {
 									</tr>
 								))}
 										<tr>
-											<td colSpan={4} style={{textAlign:'right', fontWeight:600}}>Totals:</td>
+											<td colSpan={4} style={{textAlign:'right', fontWeight:600}}>Sub Total:</td>
 											<td style={{fontWeight:600}}>{totalCount}</td>
 											<td></td>
 											<td style={{fontWeight:600}}>{totalAmount.toFixed(2)}</td>

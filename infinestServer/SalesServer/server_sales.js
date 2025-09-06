@@ -72,6 +72,27 @@ app.get('/debug/branch', async (req, res) => {
     console.error('/debug/branch error:', err && err.message || err);
     return res.status(500).json({ message: 'Server error' });
   }
+  // GST-only in-stock API endpoint for frontend
+  const InStock = require('./models/inStock');
+  const Supplier = require('./models/supplier');
+  const Bank = require('./models/bank');
+
+  app.get('/api/in-stock', async (req, res) => {
+    try {
+      // Only GST entries if gstOnly=1
+      const gstOnly = req.query.gstOnly === '1';
+      const query = gstOnly ? { gstAmount: { $gt: 0 } } : {};
+      // Populate supplier and bank info
+      const entries = await InStock.find(query)
+        .populate('supplier_id', 'supplierName agencyName')
+        .populate('bank_id', 'bankName accountNumber')
+        .sort({ createdAt: -1 })
+        .lean();
+      res.json({ entries });
+    } catch (err) {
+      res.status(500).json({ error: err.message || 'Failed to fetch in-stock GST entries.' });
+    }
+  });
 });
 
 // Branch login: allow branch-level sign-in using branch email + password

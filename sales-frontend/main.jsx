@@ -317,6 +317,10 @@ function App() {
           <CreateBank salesUrl={SALES_URL} token={effectiveToken} />
         ) : view === 'bank-history' ? (
           <BankHistory salesUrl={SALES_URL} token={effectiveToken} />
+        ) : (!branchUser && view === 'gst-calculator') ? (
+          (window.GstCalculatorView ? React.createElement(window.GstCalculatorView) : (
+            <div className="card"><div className="empty-state"><div className="empty-icon">🧮</div><div className="empty-title">Loading…</div></div></div>
+          ))
         ) : (!branchUser && view === 'supplier') ? (
           <CreateSupplier salesUrl={SALES_URL} token={effectiveToken} />
         ) : (!branchUser && view === 'branch') ? (

@@ -11,11 +11,12 @@ exports.createInStock = async (req, res) => {
   // Branch users are not allowed to create in-stock entries via this endpoint
   if (req.user.isBranch) return res.status(403).json({ success: false, message: 'Branches cannot create in-stock entries' });
 
-  const { supplier_id, bank_id, supplierAmount = 0, items = [], reference = '' } = req.body || {};
+  const { supplier_id, bank_id, supplierAmount = 0, gstAmount = 0, items = [], reference = '' } = req.body || {};
     if (!supplier_id) return res.status(400).json({ success: false, message: 'supplier_id is required' });
   if (!bank_id) return res.status(400).json({ success: false, message: 'bank_id is required' });
 
-  // Removed supplierAmount vs totalCost validation as requested
+  // Calculate totalCost for bank balance and transaction logic
+  const totalCost = (items || []).reduce((s, it) => s + ((Number(it.costPrice) || 0) * (Number(it.quantity) || 1)), 0);
 
     // Fetch and validate bank balance
     const bank = await Bank.findOne({ _id: bank_id, $or: [{ shop_id }, { mysql_user_id: req.user.userId }] });
@@ -30,17 +31,19 @@ exports.createInStock = async (req, res) => {
       supplier_id,
       bank_id,
       supplierAmount: Number(supplierAmount) || 0,
+      gstAmount: Number(gstAmount) || 0,
       items: (items || []).map(i => {
-        // Helper to generate random alphanumeric string (2-9 chars)
+        // Helper to generate random alphanumeric string (3-6 chars)
         function randomProductNo() {
           const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-          const len = Math.floor(Math.random() * 8) + 2;
+          const len = Math.floor(Math.random() * 4) + 3; // 3 to 6
           let str = '';
           for (let j = 0; j < len; j++) {
             str += chars.charAt(Math.floor(Math.random() * chars.length));
           }
           return str;
         }
+        // Use manual input as-is, only auto-generate if blank
         return {
           productNo: i.productNo && i.productNo.trim() ? i.productNo : randomProductNo(),
           productName: i.productName || '',
@@ -83,7 +86,8 @@ exports.createInStock = async (req, res) => {
 
 exports.listInStock = async (req, res) => {
   try {
-    const { shop_id } = req.user || {};
+  const { shop_id } = req.user || {};
+  const gstOnly = req.query.gstOnly === '1';
     if (!shop_id) return res.status(400).json({ success: false, message: 'Shop missing' });
     // If branch user, restrict to banks owned by that branch
     if (req.user.isBranch) {
@@ -98,10 +102,14 @@ exports.listInStock = async (req, res) => {
       return res.json({ success: true, entries });
     }
 
-    const entries = await InStock.find({ shop_id })
+    let entries = await InStock.find({ shop_id })
       .sort({ createdAt: -1 })
       .populate('supplier_id', 'supplierName agencyName')
+      .populate('bank_id', 'bankName accountNumber')
       .lean();
+    if (gstOnly) {
+      entries = entries.filter(e => Number(e.gstAmount) > 0);
+    }
     // For each returned entry, compute for each item how much was shipped
     // to branches by comparing totalQuantity vs current quantity.
     try {

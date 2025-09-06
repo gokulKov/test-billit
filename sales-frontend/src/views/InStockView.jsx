@@ -6,6 +6,7 @@ function InStockView({ salesUrl, token }) {
   const [supplierId, setSupplierId] = React.useState('');
   const [bankId, setBankId] = React.useState('');
   const [supplierAmount, setSupplierAmount] = React.useState('');
+  const [gstAmount, setGstAmount] = React.useState('');
   const [items, setItems] = React.useState([
     { productNo: '', productName: '', brand: '', model: '', quantity: 1, costPrice: '', validity: '' }
   ]);
@@ -38,8 +39,13 @@ function InStockView({ salesUrl, token }) {
   };
   React.useEffect(() => { loadSuppliers(); loadBanks(); loadEntries(); }, []);
 
-  const sumCost = items.reduce((s, it) => s + ((Number(it.costPrice) || 0) * (Number(it.quantity) || 1)), 0);
-  const canSubmit = supplierId && bankId && Number(supplierAmount) === sumCost && items.every(it => it.productName);
+  // Removed sumCost calculation and Supplier Amount check
+  const canSubmit = supplierId && bankId && items.every(it => it.productName);
+  // Calculate product amount (qty x cost price) for each item
+  const productAmounts = items.map(it => (Number(it.quantity) || 0) * (Number(it.costPrice) || 0));
+  const totalProductAmount = productAmounts.reduce((sum, amt) => sum + amt, 0);
+  // Calculate total bill amount
+  const totalBillAmount = (Number(supplierAmount) || 0) + (Number(gstAmount) || 0);
 
   const addRow = () => setItems(it => [...it, { productNo: '', productName: '', brand: '', model: '', quantity: 1, costPrice: '', validity: '' }]);
   const updateItem = (idx, field, value) => setItems(list => list.map((it, i) => i === idx ? { ...it, [field]: value } : it));
@@ -67,22 +73,23 @@ function InStockView({ salesUrl, token }) {
     setError('');
     try {
       const res = await fetch(salesUrl + '/api/in-stock', {
-        method: 'POST',
+            method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({
-          supplier_id: supplierId,
-          bank_id: bankId,
-          supplierAmount: Number(supplierAmount) || 0,
-          items: items.map(it => ({
-            productNo: it.productNo && it.productNo.trim() ? it.productNo : randomProductNo(),
-            productName: it.productName,
-            brand: it.brand,
-            model: it.model,
-            quantity: Number(it.quantity) || 1,
-            costPrice: Number(it.costPrice) || 0,
-            validity: it.validity,
-          }))
-        })
+            body: JSON.stringify({
+              supplier_id: supplierId,
+              bank_id: bankId,
+              supplierAmount: Number(supplierAmount) || 0,
+              gstAmount: Number(gstAmount) || 0,
+              items: items.map(it => ({
+                productNo: it.productNo && it.productNo.trim() ? it.productNo : randomProductNo(),
+                productName: it.productName,
+                brand: it.brand,
+                model: it.model,
+                quantity: Number(it.quantity) || 1,
+                costPrice: Number(it.costPrice) || 0,
+                validity: it.validity,
+              }))
+            })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || 'Save failed');
@@ -99,10 +106,8 @@ function InStockView({ salesUrl, token }) {
       if (sid !== supplierId) return sum;
       return sum + (Number(e.supplierAmount) || 0);
     }, 0);
-    // If modal is open, include unsaved items sum (sumCost) so users see the running total
-    const unsaved = open ? sumCost : 0;
-    return fromEntries + unsaved;
-  }, [entries, supplierId, open, sumCost]);
+    return fromEntries;
+  }, [entries, supplierId, open]);
 
   return (
     <div>
@@ -282,7 +287,11 @@ function InStockView({ salesUrl, token }) {
                 </div>
                 <div className="col">
                   <label>Supplier Amount</label>
-                  <input type="number" value={supplierAmount} onChange={e=>setSupplierAmount(e.target.value)} placeholder="Sum of cost x qty" />
+                  <input type="number" value={supplierAmount} onChange={e=>setSupplierAmount(e.target.value)} placeholder="Supplier Amount" />
+                </div>
+                <div className="col">
+                  <label>GST Amount</label>
+                  <input type="number" value={gstAmount} onChange={e=>setGstAmount(e.target.value)} placeholder="GST Amount" />
                 </div>
               </div>
 
@@ -318,7 +327,12 @@ function InStockView({ salesUrl, token }) {
               </div>
               <div className="row mt-2" style={{justifyContent:'space-between'}}>
                 <button className="btn secondary" type="button" onClick={addRow}>Add Row</button>
-                <div style={{color:'#9ca3af'}}>Sum of cost x qty: {sumCost} {Number(supplierAmount) !== sumCost ? '(must equal Supplier Amount)' : ''}</div>
+              </div>
+              <div className="row mt-2" style={{justifyContent:'flex-end'}}>
+                <div style={{color:'#9ca3af', marginRight: '32px'}}>
+                  Product Amount = qty x cost price (Total: {items.map(it => (Number(it.quantity) || 0) * (Number(it.costPrice) || 0)).reduce((sum, amt) => sum + amt, 0)})<br />
+                  Total Bill Amount = Supplier Amount + GST Amount ({(Number(supplierAmount) || 0) + (Number(gstAmount) || 0)})
+                </div>
               </div>
             </div>
             <div className="modal-footer">
