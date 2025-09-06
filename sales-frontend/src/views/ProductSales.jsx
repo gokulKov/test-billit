@@ -282,6 +282,7 @@ function ProductSales({ salesUrl, token }) {
 										<td>{lineTotal(p).toFixed(2)}</td>
 										<td>{p.validity ? new Date(p.validity).toLocaleDateString() : '-'}</td>
 								
+								
 										<td><button className="btn secondary" onClick={() => setSellerProducts(sp => sp.filter(x => (x.productId || x._id) !== (p.productId || p._id)))}>Remove</button></td>
 									</tr>
 								))}
