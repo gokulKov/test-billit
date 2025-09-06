@@ -30,7 +30,21 @@ exports.createSale = async (req, res) => {
     const amountPaid = Number(req.body.amountPaid || 0);
     const bank_id = req.body.bank_id || '';
 
-    const totalAmount = items.reduce((s, it) => s + (Number(it.qty || it.sellingQty || 0) * Number(it.sellingPrice || 0)), 0);
+    // GST calculation (calculator logic: percentage / 100 * subTotal)
+    const subTotal = Number(req.body.subTotal || items.reduce((s, it) => s + (Number(it.qty || it.sellingQty || 0) * Number(it.sellingPrice || 0)), 0));
+    const cgst = Number(req.body.cgst || 0);
+    const sgst = Number(req.body.sgst || 0);
+    const igst = Number(req.body.igst || 0);
+    const cgstAmount = Number((cgst / 100 * subTotal).toFixed(1));
+    const sgstAmount = Number((sgst / 100 * subTotal).toFixed(1));
+    const igstAmount = Number((igst / 100 * subTotal).toFixed(1));
+    let totalAmount = subTotal;
+    if (igst > 0) {
+      totalAmount += igstAmount;
+    } else {
+      totalAmount += cgstAmount + sgstAmount;
+    }
+    totalAmount = Number(totalAmount.toFixed(1));
 
     // Check branch stock availability before creating the sale
     try {
@@ -61,7 +75,25 @@ exports.createSale = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Server error during availability check' });
     }
 
-    const doc = await Sale.create({ shop_id, branch_id, seller_id, customerNo, items, totalAmount, paymentMethod, amountPaid, bank_id, createdBy: req.user.userId || req.user.branch_id || '' });
+    const doc = await Sale.create({
+      shop_id,
+      branch_id,
+      seller_id,
+      customerNo,
+      items,
+      subTotal: Number(subTotal.toFixed(1)),
+      cgst,
+      sgst,
+      igst,
+      cgstAmount,
+      sgstAmount,
+      igstAmount,
+      totalAmount,
+      paymentMethod,
+      amountPaid,
+      bank_id,
+      createdBy: req.user.userId || req.user.branch_id || ''
+    });
 
     // If payment went to a bank, create a BankTransaction (credit) and update Bank.accountBalance
     try {

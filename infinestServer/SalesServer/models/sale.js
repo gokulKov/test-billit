@@ -15,6 +15,13 @@ const SaleSchema = new mongoose.Schema({
   seller_id: { type: String, default: '' },
   customerNo: { type: String, default: '' },
   items: { type: [SaleItem], default: [] },
+  subTotal: { type: Number, default: 0 },
+  cgst: { type: Number, default: 0 }, // CGST percentage
+  sgst: { type: Number, default: 0 }, // SGST percentage
+  igst: { type: Number, default: 0 }, // IGST percentage
+  cgstAmount: { type: Number, default: 0 }, // CGST amount
+  sgstAmount: { type: Number, default: 0 }, // SGST amount
+  igstAmount: { type: Number, default: 0 }, // IGST amount
   totalAmount: { type: Number, default: 0 },
   paymentMethod: { type: String, enum: ['cash','online'], default: 'cash' },
   amountPaid: { type: Number, default: 0 },
