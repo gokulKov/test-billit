@@ -10,7 +10,7 @@ const PLAN_LIMITS = {
 // POST /api/branches
 const createBranch = async (req, res) => {
   try {
-    const { name, address, phoneNumber, email: rawEmail, password } = req.body || {};
+    const { name, address, gstNo, phoneNumber, email: rawEmail, password } = req.body || {}; // Added gstNo field
     // normalize email first to avoid using 'email' before initialization
     const email = (rawEmail || '').toLowerCase().trim();
     if (!name || !email || !password) {
@@ -49,6 +49,7 @@ const createBranch = async (req, res) => {
       email,
       passwordHash,
       isAdmin,
+      gstNo: gstNo || '', // Store GST No in the database
       createdBy: req.user.userId,
       updatedBy: req.user.userId,
     });
@@ -94,4 +95,3 @@ const toggleBranchAdmin = async (req, res) => {
 };
 
 module.exports = { createBranch, listBranches, toggleBranchAdmin };
-  

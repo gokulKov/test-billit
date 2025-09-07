@@ -1,3 +1,6 @@
+
+
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -338,12 +341,14 @@ export default function MobileRecordForm({ shopId, isLimitReached, setIsLimitRea
     }
 
     if (customerType === "Customer") {
-      if (!formData.clientName || !formData.mobileNumber || !formData.technician || rows.length === 0) {
+      // technician is optional; only validate clientName/mobileNumber and rows
+      if (!formData.clientName || !formData.mobileNumber || rows.length === 0) {
         logError("Please fill all required fields", new Error("Missing required data"))
         return
       }
     } else if (customerType === "Dealer") {
-      if (!formData.selectedDealer || !formData.technician || rows.length === 0) {
+      // technician is optional for dealers too
+      if (!formData.selectedDealer || rows.length === 0) {
         logError("Please select a dealer and fill all required fields", new Error("Missing required data"))
         return
       }
@@ -878,13 +883,12 @@ export default function MobileRecordForm({ shopId, isLimitReached, setIsLimitRea
             <button
               onClick={handleSubmit}
               disabled={
-                isLoading || 
-                !formData.technician || 
-                !formData.noOfMobile || 
-                rows.length === 0 ||
-                (customerType === "Customer" && (!formData.clientName || !formData.mobileNumber)) ||
-                (customerType === "Dealer" && !formData.selectedDealer)
-              }
+                  isLoading || 
+                  !formData.noOfMobile || 
+                  rows.length === 0 ||
+                  (customerType === "Customer" && (!formData.clientName || !formData.mobileNumber)) ||
+                  (customerType === "Dealer" && !formData.selectedDealer)
+                }
               className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
             >
               {isLoading ? (
@@ -1191,3 +1195,10 @@ export default function MobileRecordForm({ shopId, isLimitReached, setIsLimitRea
     </div>
   )
 }
+
+
+
+
+
+
+

@@ -68,9 +68,22 @@ function SalesTrack({ salesUrl, token }) {
       return { name, qty, unit, line };
     });
     const itemsRows = items.map(it => `<tr><td style="padding:6px">${it.name}</td><td style="text-align:right;padding:6px">${it.qty}</td><td style="text-align:right;padding:6px">${it.unit}</td><td style="text-align:right;padding:6px">${it.line}</td></tr>`).join('');
-    const total = Number(sale.totalAmount || items.reduce((s, it) => s + Number(it.line), 0)).toFixed(2);
+    // GST details
+    const cgstPercent = sale.cgst || sale.cgstPercent || 0;
+    const sgstPercent = sale.sgst || sale.sgstPercent || 0;
+    const igstPercent = sale.igst || sale.igstPercent || 0;
+    const cgstAmt = sale.cgstAmount || 0;
+    const sgstAmt = sale.sgstAmount || 0;
+    const igstAmt = sale.igstAmount || 0;
+    const subTotal = sale.subTotal || items.reduce((s, it) => s + Number(it.line), 0);
+    const total = Number(sale.totalAmount || (subTotal + cgstAmt + sgstAmt + igstAmt)).toFixed(2);
     const date = new Date(sale.createdAt || Date.now()).toLocaleString();
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title><style>
+    let gstLines = '';
+    if (cgstPercent > 0) gstLines += `<div>CGST ${cgstPercent}%: <span style=\"float:right;\">${Number(cgstAmt).toFixed(2)}</span></div>`;
+    if (sgstPercent > 0) gstLines += `<div>SGST ${sgstPercent}%: <span style=\"float:right;\">${Number(sgstAmt).toFixed(2)}</span></div>`;
+    if (igstPercent > 0) gstLines += `<div>IGST ${igstPercent}%: <span style=\"float:right;\">${Number(igstAmt).toFixed(2)}</span></div>`;
+    if (gstLines) gstLines += `<div style=\"margin:6px 0;\"></div>`;
+    const html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>Receipt</title><style>
       @page { size: 72mm auto; margin: 2mm; }
       body{font-family:monospace,Arial,Helvetica,sans-serif;padding:6px;color:#111; width:72mm; box-sizing:border-box;}
       h2{margin:0 0 6px;font-size:14px}
@@ -86,10 +99,14 @@ function SalesTrack({ salesUrl, token }) {
       footer{margin-top:8px;text-align:right;font-weight:700;font-size:12px}
       .center{ text-align:center }
       </style></head><body>` +
-      `<div class="center"><h2 style="margin:0">CASH RECEIPT</h2></div><div class="shop"><strong>${branchName || 'Shop'}</strong><div class="contact">${branchContact || ''}</div></div>` +
-      `<div class="date"><strong>Date:</strong> ${date}</div>` +
-      `<table><thead><tr><th>Item</th><th class="right">Qty</th><th class="right">Unit</th><th class="right">Line</th></tr></thead><tbody>${itemsRows}</tbody></table>` +
-      `<footer>Total: ${total}</footer></body></html>`;
+      `<div class=\"center\"><h2 style=\"margin:0\">CASH RECEIPT</h2></div><div class=\"shop\"><strong>${branchName || 'Shop'}</strong><div class=\"contact\">${branchContact || ''}</div></div>` +
+      `<div class=\"date\"><strong>Date:</strong> ${date}</div>` +
+      `<table><thead><tr><th>Item</th><th class=\"right\">Qty</th><th class=\"right\">Unit</th><th class=\"right\">Line</th></tr></thead><tbody>${itemsRows}</tbody></table>` +
+      `<footer style=\"margin-top:10px;text-align:left;font-size:12px;line-height:1.7;\">` +
+      `<div>SUB TOTAL: <span style=\"float:right;\">${Number(subTotal).toFixed(2)}</span></div>` +
+      gstLines +
+      `<div style=\"font-weight:700;font-size:14px;\">TOTAL: <span style=\"float:right;\">${total}</span></div>` +
+      `</footer></body></html>`;
     return html;
   }
 

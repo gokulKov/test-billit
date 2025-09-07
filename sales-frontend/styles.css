@@ -1157,7 +1157,7 @@ body {
 
 .modal {
   width: 100%;
-  max-width: 600px;
+  max-width: 1200px;
   max-height: 90vh;
   background: var(--card);
   border: 1px solid var(--border);

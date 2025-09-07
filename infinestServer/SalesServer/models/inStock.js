@@ -21,6 +21,7 @@ const InStockSchema = new mongoose.Schema({
   supplier_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', index: true, required: true },
   bank_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', index: true },
   supplierAmount: { type: Number, default: 0 },
+  gstAmount: { type: Number, default: 0 },
   items: { type: [InStockItemSchema], default: [] },
   createdBy: { type: String, default: '' },
   updatedBy: { type: String, default: '' },

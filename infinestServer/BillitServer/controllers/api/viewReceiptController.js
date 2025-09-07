@@ -41,7 +41,8 @@ const viewReceiptController = async (req, res) => {
       returned: m.returned || false,
       delivered: m.delivered || false,
       ready: m.ready || false,
-      _id: m._id, // Include ID for receipt links
+  paid_amount: m.paid_amount || 0,
+  _id: m._id, // Include ID for receipt links
     }));
 
     res.json({
@@ -109,7 +110,8 @@ const viewPublicReceiptController = async (req, res) => {
       returned: m.returned || false,
       delivered: m.delivered || false,
       ready: m.ready || false,
-      _id: m._id,
+  paid_amount: m.paid_amount || 0,
+  _id: m._id,
     }));
 
     // Return multiple possible address fields

@@ -3,6 +3,7 @@ function BranchSupplyHistory({ salesUrl, token }) {
   const [branches, setBranches] = React.useState([]);
   const [branchId, setBranchId] = React.useState('');
   const [error, setError] = React.useState('');
+  const [filterDate, setFilterDate] = React.useState('');
 
   const loadBranches = async () => {
     try {
@@ -40,6 +41,15 @@ function BranchSupplyHistory({ salesUrl, token }) {
 
   const currency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
 
+  const filteredRows = React.useMemo(() => {
+    if (!filterDate) return rows;
+    const selectedDate = new Date(filterDate).toDateString();
+    return rows.filter(supply => {
+      const supplyDate = new Date(supply.createdAt || supply.updatedAt || new Date()).toDateString();
+      return supplyDate === selectedDate;
+    });
+  }, [rows, filterDate]);
+
   return (
     <div className="card table-card">
       <div className="row" style={{ padding: '12px 12px 0 12px' }}>
@@ -50,15 +60,22 @@ function BranchSupplyHistory({ salesUrl, token }) {
             {branches.map(b => <option key={b._id} value={b._id}>{b.name || b._id}</option>)}
           </select>
         </div>
+        <div className="col">
+          <label>Filter by Date</label>
+          <input
+            type="date"
+            value={filterDate}
+            onChange={e => setFilterDate(e.target.value)}
+            style={{ marginBottom: '12px', padding: '8px', width: '100%' }}
+          />
+        </div>
       </div>
 
       <div className="table-scroll">
         {branchId ? (
-          // Flatten all items for selected branch into a single table
           <table className="modern-table">
             <thead>
               <tr>
-               
                 <th>Product Name</th>
                 <th>Brand</th>
                 <th>Model</th>
@@ -74,7 +91,7 @@ function BranchSupplyHistory({ salesUrl, token }) {
             <tbody>
               {(() => {
                 const flat = [];
-                rows.forEach(s => {
+                filteredRows.forEach(s => {
                   const when = s.createdAt || s.updatedAt || new Date();
                   const supplier = s.supplier_id?.supplierName || s.supplierName || '-';
                   (Array.isArray(s.items) ? s.items : []).forEach(it => {
@@ -113,43 +130,7 @@ function BranchSupplyHistory({ salesUrl, token }) {
             </tbody>
           </table>
         ) : ( ''
-          // No branch selected: show grouped supplies like before
-          // <table className="pretty-table">
-          //   <thead>
-          //     <tr>
-          //       <th>Time</th>
-          //       <th>Branch</th>
-          //       <th>Items</th>
-          //       <th className="text-right">Total Value</th>
-          //       <th className="text-right">Total Cost</th>
-          //       <th>Created By</th>
-          //       <th>Reference</th>
-          //     </tr>
-          //   </thead>
-          //   <tbody>
-          //     {rows.length === 0 ? (
-          //       <tr><td colSpan={7}>
-          //         <div className="empty-state">
-          //           <div className="empty-icon">📦</div>
-          //           <div className="empty-title">No Supply History</div>
-          //         </div>
-          //       </td></tr>
-          //     ) : rows.map(r => (
-          //       <React.Fragment key={r._id}>
-          //         <tr>
-          //           <td>{new Date(r.createdAt).toLocaleString()}</td>
-          //           <td>{(r.branch_id && (r.branch_id.name || r.branch_id)) || r.branch_id || '-'}</td>
-          //           <td>{Array.isArray(r.items) ? r.items.length : 0}</td>
-          //           <td className="text-right">{currency(r.totalSupplyValue ?? (Array.isArray(r.items) ? r.items.reduce((s, it) => s + (Number(it.value) || ((Number(it.unitSellingPrice) || 0) * (Number(it.qty) || 0))), 0) : 0))}</td>
-          //           <td className="text-right">{currency(r.totalSupplyCost ?? (Array.isArray(r.items) ? r.items.reduce((s, it) => s + (Number(it.totalCostPrice) || ((Number(it.costPrice) || 0) * (Number(it.qty) || 0))), 0) : 0))}</td>
-          //           <td>{r.createdBy || '-'}</td>
-          //           <td>{r._id}</td>
-          //         </tr>
-          //       </React.Fragment>
-          //     ))}
-          //   </tbody>
-          // </table>""
-        )}
+                 )}
       </div>
 
       {error ? <div className="mt-2 text-danger" style={{ padding: '0 12px 12px' }}>{error}</div> : null}

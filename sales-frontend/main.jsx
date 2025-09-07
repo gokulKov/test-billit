@@ -317,6 +317,10 @@ function App() {
           <CreateBank salesUrl={SALES_URL} token={effectiveToken} />
         ) : view === 'bank-history' ? (
           <BankHistory salesUrl={SALES_URL} token={effectiveToken} />
+        ) : (!branchUser && view === 'gst-calculator') ? (
+          (window.GstCalculatorView ? React.createElement(window.GstCalculatorView) : (
+            <div className="card"><div className="empty-state"><div className="empty-icon">🧮</div><div className="empty-title">Loading…</div></div></div>
+          ))
         ) : (!branchUser && view === 'supplier') ? (
           <CreateSupplier salesUrl={SALES_URL} token={effectiveToken} />
         ) : (!branchUser && view === 'branch') ? (
@@ -441,7 +445,7 @@ function App() {
 // Modern CreateBranch component with enhanced UI
 function CreateBranch({ salesUrl, token, planId, branchLimit = 0 }) {
   const [form, setForm] = React.useState({
-    name: '', address: '', phoneNumber: '', email: '', password: '', confirmPassword: ''
+    name: '', address: '', gstNo: '', phoneNumber: '', email: '', password: '', confirmPassword: ''
   });
   const [rows, setRows] = React.useState([]);
   const [saving, setSaving] = React.useState(false);
@@ -449,7 +453,10 @@ function CreateBranch({ salesUrl, token, planId, branchLimit = 0 }) {
   const [page, setPage] = React.useState(1);
   const [pageSize] = React.useState(10);
 
-  const onChange = (e) => { const { name, value } = e.target; setForm(f => ({ ...f, [name]: value })); };
+  const onChange = (e) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  };
 
   const loadBranches = async () => {
     try {
@@ -477,16 +484,21 @@ function CreateBranch({ salesUrl, token, planId, branchLimit = 0 }) {
         body: JSON.stringify({
           name: form.name,
           address: form.address,
+          gstNo: form.gstNo, // Added GST No field
           phoneNumber: form.phoneNumber,
           email: form.email,
-          password: form.password
-        })
+          password: form.password,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || 'Create failed');
-      setForm({ name: '', address: '', phoneNumber: '', email: '', password: '', confirmPassword: '' });
+      setForm({ name: '', address: '', gstNo: '', phoneNumber: '', email: '', password: '', confirmPassword: '' });
       await loadBranches();
-    } catch (e) { setError(e.message); } finally { setSaving(false); }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // pagination
@@ -617,6 +629,17 @@ function CreateBranch({ salesUrl, token, planId, branchLimit = 0 }) {
                 required
               />
             </div>
+
+            <div className="form-group">
+              <label className="form-label">GST No</label>
+              <input 
+                name="gstNo" 
+                value={form.gstNo} 
+                onChange={onChange} 
+                placeholder="GST Number" 
+                className="form-input"
+              />
+            </div>
           </div>
           
           <div className="btn-group mt-4">
@@ -681,7 +704,10 @@ function CreateBranch({ salesUrl, token, planId, branchLimit = 0 }) {
                     <th>Address</th>
                     <th>Contact</th>
                     <th>Email</th>
+                    <th>GST No</th>
+                    
                     <th>Status</th>
+                    <th>Stock Value</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -697,6 +723,7 @@ function CreateBranch({ salesUrl, token, planId, branchLimit = 0 }) {
                       <td>{r.address || '-'}</td>
                       <td>{r.phoneNumber || '-'}</td>
                       <td>{r.email || '-'}</td>
+                      <td>{r.gstNo || '-'}</td>
                       <td>
                         <span className="status-badge success">Active</span>
                       </td>

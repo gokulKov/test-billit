@@ -63,7 +63,27 @@ function ProductSales({ salesUrl, token }) {
 	}
 
 	const totalCount = sellerProducts.reduce((s, it) => s + Number(it.sellingQty ?? it.qty ?? 0), 0);
-	const totalAmount = sellerProducts.reduce((s, it) => s + lineTotal(it), 0);
+	const subTotal = sellerProducts.reduce((s, it) => s + lineTotal(it), 0);
+
+	// GST state
+	const [cgst, setCgst] = React.useState(0);
+	const [sgst, setSgst] = React.useState(0);
+	const [igst, setIgst] = React.useState(0);
+
+	// GST calculation
+	// GST calculation (calculator logic: percentage / 100 * subTotal)
+	const cgstAmount = ((Number(cgst) || 0) / 100) * subTotal;
+	const sgstAmount = ((Number(sgst) || 0) / 100) * subTotal;
+	const igstAmount = ((Number(igst) || 0) / 100) * subTotal;
+
+	// Total calculation logic
+	let totalAmount = subTotal;
+	if (igst > 0) {
+		totalAmount += igstAmount;
+	} else {
+		totalAmount += cgstAmount + sgstAmount;
+	}
+	totalAmount = Number(totalAmount.toFixed(1));
 
 	async function doSell() {
 		try {
@@ -78,7 +98,14 @@ function ProductSales({ salesUrl, token }) {
 			const payload = {
 				items: sellerProducts.map(it => ({ productId: it.productId || it._id || '', productNo: it.productNo || '', productName: it.productName || '', qty: Number(it.sellingQty ?? it.qty ?? 0), sellingPrice: Number(it.sellingPrice || 0), lineTotal: Number(lineTotal(it)) })),
 				customerNo,
-				totalAmount,
+				subTotal,
+				cgst: Number(cgst),
+				sgst: Number(sgst),
+				igst: Number(igst),
+				cgstAmount: Number(cgstAmount.toFixed(2)),
+				sgstAmount: Number(sgstAmount.toFixed(2)),
+				igstAmount: Number(igstAmount.toFixed(2)),
+				totalAmount: Number(totalAmount.toFixed(2)),
 				paymentMethod,
 				amountPaid: Number(totalAmount || 0),
 				bank_id: (selectedBank && selectedBank !== 'select') ? selectedBank : ''
@@ -91,6 +118,9 @@ function ProductSales({ salesUrl, token }) {
 			setSellerProducts([]);
 			setCustomerNo('');
 			setSelectedBank('');
+			setCgst(0);
+			setSgst(0);
+			setIgst(0);
 			setError('Sale saved');
 		} catch (e) {
 			setError(e.message || 'Sell failed');
@@ -150,11 +180,28 @@ function ProductSales({ salesUrl, token }) {
 			}).join('');
 			const total = Number(sale.totalAmount || 0).toFixed(2);
 			const date = new Date(sale.createdAt || Date.now()).toLocaleString();
-			const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title><style> @page { size: 72mm auto; margin: 2mm; } body{font-family:monospace,Arial,Helvetica,sans-serif;padding:6px;color:#111; width:72mm; box-sizing:border-box;} h2{margin:0 0 6px;font-size:14px} .shop{ text-align:center; margin-bottom:6px; } .shop strong{ display:block; font-size:12px } .shop .contact{ font-size:11px; margin-top:2px } .date{ font-size:11px; margin-bottom:6px } table{width:100%;border-collapse:collapse;margin-top:6px;font-size:11px} th,td{padding:4px 2px} thead th{border-bottom:1px dashed #bbb; text-align:left; font-size:11px} tbody td{border-bottom:1px dashed #eee} .right{ text-align:right } footer{margin-top:8px;text-align:right;font-weight:700;font-size:12px} .center{ text-align:center }</style></head><body>` +
-				`<div class="center"><h2 style="margin:0">CASH RECEIPT</h2></div><div class="shop"><strong>${shopName || 'Shop'}</strong><div class="contact">${shopContact || ''}</div></div>` +
-				`<div class="date"><strong>Date:</strong> ${date}</div>` +
-				`<table><thead><tr><th>Item</th><th class="right">Qty</th><th class="right">Unit</th><th class="right">Line</th></tr></thead><tbody>${items}</tbody></table>` +
-				`<footer>Total: ${total}</footer></body></html>`;
+			// GST details
+			const cgstPercent = sale.cgst || cgst;
+			const sgstPercent = sale.sgst || sgst;
+			const igstPercent = sale.igst || igst;
+			const cgstAmt = sale.cgstAmount || cgstAmount;
+			const sgstAmt = sale.sgstAmount || sgstAmount;
+			const igstAmt = sale.igstAmount || igstAmount;
+			const subTotal = sale.subTotal || subTotal;
+			let gstLines = '';
+			if (cgstPercent > 0) gstLines += `<div>CGST ${cgstPercent}%: <span style=\"float:right;\">${cgstAmt.toFixed(2)}</span></div>`;
+			if (sgstPercent > 0) gstLines += `<div>SGST ${sgstPercent}%: <span style=\"float:right;\">${sgstAmt.toFixed(2)}</span></div>`;
+			if (igstPercent > 0) gstLines += `<div>IGST ${igstPercent}%: <span style=\"float:right;\">${igstAmt.toFixed(2)}</span></div>`;
+			if (gstLines) gstLines += `<div style=\"margin:6px 0;\"></div>`;
+			const html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>Receipt</title><style> @page { size: 72mm auto; margin: 2mm; } body{font-family:monospace,Arial,Helvetica,sans-serif;padding:6px;color:#111; width:72mm; box-sizing:border-box;} h2{margin:0 0 6px;font-size:14px} .shop{ text-align:center; margin-bottom:6px; } .shop strong{ display:block; font-size:12px } .shop .contact{ font-size:11px; margin-top:2px } .date{ font-size:11px; margin-bottom:6px } table{width:100%;border-collapse:collapse;margin-top:6px;font-size:11px} th,td{padding:4px 2px} thead th{border-bottom:1px dashed #bbb; text-align:left; font-size:11px} tbody td{border-bottom:1px dashed #eee} .right{ text-align:right } footer{margin-top:8px;text-align:right;font-weight:700;font-size:12px} .center{ text-align:center }</style></head><body>` +
+				`<div class=\"center\"><h2 style=\"margin:0\">CASH RECEIPT</h2></div><div class=\"shop\"><strong>${shopName || 'Shop'}</strong><div class=\"contact\">${shopContact || ''}</div></div>` +
+				`<div class=\"date\"><strong>Date:</strong> ${date}</div>` +
+				`<table><thead><tr><th>Item</th><th class=\"right\">Qty</th><th class=\"right\">Unit</th><th class=\"right\">Line</th></tr></thead><tbody>${items}</tbody></table>` +
+				`<footer style=\"margin-top:10px;text-align:left;font-size:12px;line-height:1.7;\">` +
+				`<div>SUB TOTAL: <span style=\"float:right;\">${subTotal.toFixed(2)}</span></div>` +
+				gstLines +
+				`<div style=\"font-weight:700;font-size:14px;\">TOTAL: <span style=\"float:right;\">${total}</span></div>` +
+				`</footer></body></html>`;
 			const w = window.open('', '_blank');
 			if (!w) {
 				// fallback to in-page preview when popups are blocked
@@ -282,14 +329,45 @@ function ProductSales({ salesUrl, token }) {
 										<td>{lineTotal(p).toFixed(2)}</td>
 										<td>{p.validity ? new Date(p.validity).toLocaleDateString() : '-'}</td>
 								
+
 										<td><button className="btn secondary" onClick={() => setSellerProducts(sp => sp.filter(x => (x.productId || x._id) !== (p.productId || p._id)))}>Remove</button></td>
 									</tr>
 								))}
 										<tr>
-											<td colSpan={4} style={{textAlign:'right', fontWeight:600}}>Totals:</td>
+											<td colSpan={4} style={{textAlign:'right', fontWeight:600}}>Sub Total:</td>
 											<td style={{fontWeight:600}}>{totalCount}</td>
 											<td></td>
-											<td style={{fontWeight:600}}>{totalAmount.toFixed(2)}</td>
+											<td style={{fontWeight:600}}>{subTotal.toFixed(1)}</td>
+											<td colSpan={2}></td>
+										</tr>
+										{/* GST Inputs */}
+										<tr>
+											<td colSpan={4} style={{textAlign:'right'}}>CGST (%)</td>
+											<td colSpan={2}></td>
+											<td><input style={{width:64}} type="number" min="0" value={cgst} onChange={e => setCgst(e.target.value)} /></td>
+											<td>₹ {cgstAmount.toFixed(1)}</td>
+											<td colSpan={1}></td>
+										</tr>
+										<tr>
+											<td colSpan={4} style={{textAlign:'right'}}>SGST (%)</td>
+											<td colSpan={2}></td>
+											<td><input style={{width:64}} type="number" min="0" value={sgst} onChange={e => setSgst(e.target.value)} /></td>
+											<td>₹ {sgstAmount.toFixed(1)}</td>
+											<td colSpan={1}></td>
+										</tr>
+										<tr>
+											<td colSpan={4} style={{textAlign:'right'}}>IGST (%)</td>
+											<td colSpan={2}></td>
+											<td><input style={{width:64}} type="number" min="0" value={igst} onChange={e => setIgst(e.target.value)} /></td>
+											<td>₹ {igstAmount.toFixed(1)}</td>
+											<td colSpan={1}></td>
+										</tr>
+										{/* Total Amount */}
+										<tr>
+											<td colSpan={4} style={{textAlign:'right', fontWeight:600}}>Total Amount:</td>
+											<td></td>
+											<td></td>
+											<td style={{fontWeight:600}}>{totalAmount.toFixed(1)}</td>
 											<td colSpan={2}></td>
 										</tr>
 										</tbody>

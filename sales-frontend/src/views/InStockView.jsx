@@ -6,11 +6,23 @@ function InStockView({ salesUrl, token }) {
   const [supplierId, setSupplierId] = React.useState('');
   const [bankId, setBankId] = React.useState('');
   const [supplierAmount, setSupplierAmount] = React.useState('');
+  const [gstAmount, setGstAmount] = React.useState('');
   const [items, setItems] = React.useState([
     { productNo: '', productName: '', brand: '', model: '', quantity: 1, costPrice: '', validity: '' }
   ]);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [filter, setFilter] = React.useState({
+    productNo: '',
+    productName: '',
+    brand: '',
+    model: '',
+    productDays: '',
+    quantity: ''
+  });
+  const [validityPopup, setValidityPopup] = React.useState(false);
+  const [validityData, setValidityData] = React.useState([]);
+  const [showRedDot, setShowRedDot] = React.useState(false);
 
   const loadSuppliers = async () => {
     try {
@@ -38,8 +50,49 @@ function InStockView({ salesUrl, token }) {
   };
   React.useEffect(() => { loadSuppliers(); loadBanks(); loadEntries(); }, []);
 
-  const sumCost = items.reduce((s, it) => s + ((Number(it.costPrice) || 0) * (Number(it.quantity) || 1)), 0);
-  const canSubmit = supplierId && bankId && Number(supplierAmount) === sumCost && items.every(it => it.productName);
+  React.useEffect(() => {
+    const hasExpiringProducts = entries.some(entry => {
+      return entry.items.some(item => {
+        if (!item.validity) return false;
+        const validityDate = new Date(item.validity);
+        const today = new Date();
+        const diffInDays = Math.ceil((validityDate - today) / (1000 * 60 * 60 * 24));
+        return diffInDays > 0 && diffInDays <= 7; // Check for products expiring within 7 days
+      });
+    });
+    setShowRedDot(hasExpiringProducts);
+  }, [entries]);
+
+  const handleFilterChange = (field, value) => {
+    setFilter(prev => ({ ...prev, [field]: value }));
+  };
+
+  const filteredEntries = React.useMemo(() => {
+    return entries.filter(entry => {
+      return entry.items.some(item => {
+        const productDays = filter.productDays ? parseInt(filter.productDays, 10) : null;
+        const createdDate = new Date(entry.createdAt);
+        const daysInStock = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+        return (
+          (!filter.productNo || item.productNo?.includes(filter.productNo)) &&
+          (!filter.productName || item.productName?.toLowerCase().includes(filter.productName.toLowerCase())) &&
+          (!filter.brand || item.brand?.toLowerCase().includes(filter.brand.toLowerCase())) &&
+          (!filter.model || item.model?.toLowerCase().includes(filter.model.toLowerCase())) &&
+          (!productDays || daysInStock === productDays) &&
+          (filter.quantity === '' || item.quantity === parseInt(filter.quantity, 10))
+        );
+      });
+    });
+  }, [entries, filter]);
+
+  // Removed sumCost calculation and Supplier Amount check
+  const canSubmit = supplierId && bankId && items.every(it => it.productName);
+  // Calculate product amount (qty x cost price) for each item
+  const productAmounts = items.map(it => (Number(it.quantity) || 0) * (Number(it.costPrice) || 0));
+  const totalProductAmount = productAmounts.reduce((sum, amt) => sum + amt, 0);
+  // Calculate total bill amount
+  const totalBillAmount = (Number(supplierAmount) || 0) + (Number(gstAmount) || 0);
 
   const addRow = () => setItems(it => [...it, { productNo: '', productName: '', brand: '', model: '', quantity: 1, costPrice: '', validity: '' }]);
   const updateItem = (idx, field, value) => setItems(list => list.map((it, i) => i === idx ? { ...it, [field]: value } : it));
@@ -51,27 +104,39 @@ function InStockView({ salesUrl, token }) {
     setError('');
   };
 
+  // Helper to generate random alphanumeric string (2-9 chars)
+  function randomProductNo() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const len = Math.floor(Math.random() * 8) + 2; // 2 to 9
+    let str = '';
+    for (let i = 0; i < len; i++) {
+      str += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return str;
+  }
+
   const submit = async () => {
     setSaving(true);
     setError('');
     try {
       const res = await fetch(salesUrl + '/api/in-stock', {
-        method: 'POST',
+            method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({
-          supplier_id: supplierId,
-          bank_id: bankId,
-          supplierAmount: Number(supplierAmount) || 0,
-          items: items.map(it => ({
-            productNo: it.productNo || '',
-            productName: it.productName,
-            brand: it.brand,
-            model: it.model,
-            quantity: Number(it.quantity) || 1,
-            costPrice: Number(it.costPrice) || 0,
-            validity: it.validity,
-          }))
-        })
+            body: JSON.stringify({
+              supplier_id: supplierId,
+              bank_id: bankId,
+              supplierAmount: Number(supplierAmount) || 0,
+              gstAmount: Number(gstAmount) || 0,
+              items: items.map(it => ({
+                productNo: it.productNo && it.productNo.trim() ? it.productNo : randomProductNo(),
+                productName: it.productName,
+                brand: it.brand,
+                model: it.model,
+                quantity: Number(it.quantity) || 1,
+                costPrice: Number(it.costPrice) || 0,
+                validity: it.validity,
+              }))
+            })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || 'Save failed');
@@ -88,10 +153,28 @@ function InStockView({ salesUrl, token }) {
       if (sid !== supplierId) return sum;
       return sum + (Number(e.supplierAmount) || 0);
     }, 0);
-    // If modal is open, include unsaved items sum (sumCost) so users see the running total
-    const unsaved = open ? sumCost : 0;
-    return fromEntries + unsaved;
-  }, [entries, supplierId, open, sumCost]);
+    return fromEntries;
+  }, [entries, supplierId, open]);
+
+  const handleProductValidity = () => {
+    const today = new Date();
+    const data = entries.flatMap(entry => {
+      return entry.items
+        .filter(item => {
+          if (!item.validity) return false;
+          const validityDate = new Date(item.validity);
+          const diffInDays = Math.ceil((validityDate - today) / (1000 * 60 * 60 * 24));
+          return diffInDays > 0 && diffInDays <= 7;
+        })
+        .map(item => ({
+          productNo: item.productNo || 'N/A',
+          validityDate: new Date(item.validity).toLocaleDateString()
+        }));
+    });
+    setValidityData(data);
+    setValidityPopup(true);
+    setShowRedDot(false); // Hide red dot when popup is opened
+  };
 
   return (
     <div>
@@ -141,29 +224,87 @@ function InStockView({ salesUrl, token }) {
           <button className="btn btn-primary" type="button" onClick={() => setOpen(true)}>
             📦 Add New Stock
           </button>
-        </div>
-      </div>
 
+          <button className="btn btn-secondary" type="button" onClick={handleProductValidity}>
+            📅 Product Validity
+            {showRedDot && <span className="red-dot"></span>}
+          </button>
+        </div>
+         <h4>Filter Inventory</h4><br />
+         <div className="row mt-2">
+          
+              <div className="col">
+
+                <input
+            type="text"
+            placeholder="Product No"
+            value={filter.productNo}
+            onChange={e => handleFilterChange('productNo', e.target.value)}
+          />
+          </div>
+          <div className="col">
+          <input
+            type="text"
+            placeholder="Product Name"
+            value={filter.productName}
+            onChange={e => handleFilterChange('productName', e.target.value)}
+          />
+          </div>
+          <div className="col">
+          <input
+            type="text"
+            placeholder="Brand"
+            value={filter.brand}
+            onChange={e => handleFilterChange('brand', e.target.value)}
+          />
+          </div>
+          <div className="col">
+          <input
+            type="text"
+            placeholder="Model"
+            value={filter.model}
+            onChange={e => handleFilterChange('model', e.target.value)}
+          />
+          </div>
+          <div className="col">
+          <input
+            type="number"
+            placeholder="Product Days"
+            value={filter.productDays}
+            onChange={e => handleFilterChange('productDays', e.target.value)}
+          />
+          </div>
+          <div className="col">
+            <input
+              type="number"
+              placeholder="Quantity"
+              value={filter.quantity}
+              onChange={e => handleFilterChange('quantity', e.target.value)}
+            />
+          </div>
+
+          
+               
+              </div>
+      </div>
+{/* 
       {/* Inventory Table */}
       <div className="table-card">
         <div className="table-header">
           <div>
-            <h3 className="table-title">Master Inventory</h3>
+            <h3 className="table-title">
+              Master Inventory
+              {showRedDot && <span className="red-dot"></span>}
+            </h3>
             <p className="table-subtitle">Complete list of all products in your inventory</p>
           </div>
         </div>
-        
-        {entries.length === 0 ? (
+
+        {filteredEntries.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📦</div>
             <div className="empty-title">No Inventory Items</div>
-            <div className="empty-description">Add your first product to inventory to get started</div>
-            <button 
-              className="empty-action" 
-              onClick={() => setOpen(true)}
-            >
-              📦 Add First Product
-            </button>
+            <div className="empty-description">No items match the filter criteria</div>
           </div>
         ) : (
           <>
@@ -185,65 +326,64 @@ function InStockView({ salesUrl, token }) {
                   </tr>
                 </thead>
                 <tbody>
-                    {entries.flatMap((e) => (
-                        (Array.isArray(e.items) ? e.items : []).map((it, idx) => (
-                        <tr key={`${e._id}-${idx}`}>
-                          <td>
-                            <div className="supplier-cell">
-                              <span className="cell-strong">{e.supplier_id?.supplierName || 'Unknown Supplier'}</span>
-                              <div className="cell-sub">{e.supplier_id?.agencyName || '-'}</div>
-                            </div>
-                          </td>
-                          <td>
-                            <span className="product-code">{it.productNo || '-'}</span>
-                          </td>
-                          <td>
-                            <div className="product-cell">
-                              <span className="cell-strong">{it.productName || '-'}</span>
-                            </div>
-                          </td>
-                          <td>
-                            <span className="brand-text">{it.brand || '-'}</span>
-                          </td>
-                          <td>
-                            <span className="model-text">{it.model || '-'}</span>
-                          </td>
-                          <td>
-                            <span className="count-badge">{it.quantity ?? 0}</span>
-                          </td>
-                          <td>
-                            <span className="count-badge">{it.totalQuantity ?? it.quantity ?? 0}</span>
-                          </td>
-                          <td>
-                            <span className="amount-badge">
-                              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(it.costPrice || 0)}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="date-cell">
-                              {it.validity ? new Date(it.validity).toLocaleDateString() : '-'}
-                            </div>
-                          </td>
-                          {/* Product Date: days in store (inclusive from createdAt to today) */}
-                          <td>{(() => {
-                              try {
-                                const created = new Date(e.createdAt);
-                                if (isNaN(created.getTime())) return '-';
-                                const msPerDay = 1000 * 60 * 60 * 24;
-                                const days = Math.floor((Date.now() - created.getTime()) / msPerDay) + 1;
-                                return `${days} day${days !== 1 ? 's' : ''}`;
-                              } catch (err) { return '-'; }
-                            })()}</td>
-                          <td>{new Date(e.createdAt).toLocaleString()}</td>
-                        </tr>
-                      ))
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
+                  {filteredEntries.flatMap((e) => (
+                    (Array.isArray(e.items) ? e.items : []).map((it, idx) => (
+                      <tr key={`${e._id}-${idx}`}>
+                        <td>
+                          <div className="supplier-cell">
+                            <span className="cell-strong">{e.supplier_id?.supplierName || 'Unknown Supplier'}</span>
+                            <div className="cell-sub">{e.supplier_id?.agencyName || '-'}</div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="product-code">{it.productNo || '-'}</span>
+                        </td>
+                        <td>
+                          <div className="product-cell">
+                            <span className="cell-strong">{it.productName || '-'}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="brand-text">{it.brand || '-'}</span>
+                        </td>
+                        <td>
+                          <span className="model-text">{it.model || '-'}</span>
+                        </td>
+                        <td>
+                          <span className="count-badge">{it.quantity ?? 0}</span>
+                        </td>
+                        <td>
+                          <span className="count-badge">{it.totalQuantity ?? it.quantity ?? 0}</span>
+                        </td>
+                        <td>
+                          <span className="amount-badge">
+                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(it.costPrice || 0)}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="date-cell">
+                            {it.validity ? new Date(it.validity).toLocaleDateString() : '-'}
+                          </div>
+                        </td>
+                        <td>{(() => {
+                          try {
+                            const created = new Date(e.createdAt);
+                            if (isNaN(created.getTime())) return '-';
+                            const msPerDay = 1000 * 60 * 60 * 24;
+                            const days = Math.floor((Date.now() - created.getTime()) / msPerDay) + 1;
+                            return `${days} day${days !== 1 ? 's' : ''}`;
+                          } catch (err) { return '-'; }
+                        })()}</td>
+                        <td>{new Date(e.createdAt).toLocaleString()}</td>
+                      </tr>
+                    ))
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
 
       {open && (
         <div className="modal-backdrop">
@@ -271,7 +411,11 @@ function InStockView({ salesUrl, token }) {
                 </div>
                 <div className="col">
                   <label>Supplier Amount</label>
-                  <input type="number" value={supplierAmount} onChange={e=>setSupplierAmount(e.target.value)} placeholder="Sum of cost x qty" />
+                  <input type="number" value={supplierAmount} onChange={e=>setSupplierAmount(e.target.value)} placeholder="Supplier Amount" />
+                </div>
+                <div className="col">
+                  <label>GST Amount</label>
+                  <input type="number" value={gstAmount} onChange={e=>setGstAmount(e.target.value)} placeholder="GST Amount" />
                 </div>
               </div>
 
@@ -307,11 +451,43 @@ function InStockView({ salesUrl, token }) {
               </div>
               <div className="row mt-2" style={{justifyContent:'space-between'}}>
                 <button className="btn secondary" type="button" onClick={addRow}>Add Row</button>
-                <div style={{color:'#9ca3af'}}>Sum of cost x qty: {sumCost} {Number(supplierAmount) !== sumCost ? '(must equal Supplier Amount)' : ''}</div>
+              </div>
+              <div className="row mt-2" style={{justifyContent:'flex-end'}}>
+                <div style={{color:'#9ca3af', marginRight: '32px'}}>
+                  Product Amount = qty x cost price (Total: {items.map(it => (Number(it.quantity) || 0) * (Number(it.costPrice) || 0)).reduce((sum, amt) => sum + amt, 0)})<br />
+                  Total Bill Amount = Supplier Amount + GST Amount ({(Number(supplierAmount) || 0) + (Number(gstAmount) || 0)})
+                </div>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn" disabled={!canSubmit || saving} onClick={submit}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {validityPopup && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <div style={{fontWeight:800}}>Product Validity</div>
+              <button className="btn secondary" onClick={() => setValidityPopup(false)}>Close</button>
+            </div>
+            <div className="modal-body">
+              {validityData.length === 0 ? (
+                <div className="text-center" style={{color:'#9ca3af', padding: '32px 0'}}>
+                  No products with validity dates found.
+                </div>
+              ) : (
+                <div className="row">
+                  {validityData.map((vd, idx) => (
+                    <div key={idx} className="col-6" style={{marginBottom:16}}>
+                      <div style={{fontWeight:600}}>{vd.productNo}</div>
+                      <div style={{color:'#6b7280'}}>{vd.validityDate}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
