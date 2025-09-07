@@ -13,6 +13,7 @@ const branchSchema = new mongoose.Schema(
     isAdmin: { type: Boolean, default: false },
     createdBy: { type: String },
     updatedBy: { type: String },
+    gstNo: { type: String },
   },
   { timestamps: true }
 );

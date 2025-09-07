@@ -3,6 +3,8 @@ function BankHistory({ salesUrl, token }) {
   const [bankId, setBankId] = React.useState('');
   const [rows, setRows] = React.useState([]);
   const [error, setError] = React.useState('');
+  const [typeFilter, setTypeFilter] = React.useState('');
+  const [referenceFilter, setReferenceFilter] = React.useState('');
 
   const loadBanks = async () => {
     try {
@@ -26,8 +28,11 @@ function BankHistory({ salesUrl, token }) {
   React.useEffect(() => { loadBanks(); loadTxns(); }, []);
 
   const onBankChange = (e) => { const id = e.target.value; setBankId(id); loadTxns(id); };
+  const onTypeChange = (e) => { setTypeFilter(e.target.value); };
+  const onReferenceChange = (e) => { setReferenceFilter(e.target.value); };
   const currency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
 
+  // Normalize/format reference labels for UI and filtering
   const formatReference = (ref) => {
     if (!ref) return '-';
     try {
@@ -43,38 +48,66 @@ function BankHistory({ salesUrl, token }) {
     } catch (e) { return '-'; }
   };
 
+  // Extract unique types and references from rows
+  const typeOptions = React.useMemo(() => {
+    const set = new Set();
+    rows.forEach(r => r.type && set.add(r.type));
+    return Array.from(set);
+  }, [rows]);
+
+  const referenceOptions = React.useMemo(() => {
+    const set = new Set();
+    rows.forEach(r => {
+      const label = formatReference(r.reference);
+      if (label && label !== '-') set.add(label);
+    });
+    return Array.from(set);
+  }, [rows]);
+
+  // Filter rows based on selected filters
+  const filteredRows = React.useMemo(() => {
+    return rows.filter(r => {
+      const typeMatch = !typeFilter || r.type === typeFilter;
+      const refMatch = !referenceFilter || formatReference(r.reference) === referenceFilter;
+      return typeMatch && refMatch;
+    });
+  }, [rows, typeFilter, referenceFilter]);
+
+  
+
   return (
     <div>
       {/* Statistics Cards */}
       <div className="stats-grid">
+        {/* ...existing code... */}
         <div className="stat-card">
           <div className="stat-header">
             <div className="stat-icon">💰</div>
             <div>
               <div className="stat-label">Total Transactions</div>
-              <div className="stat-value">{rows.length}</div>
+              <div className="stat-value">{filteredRows.length}</div>
             </div>
           </div>
           <div className="stat-change">All payment activities</div>
         </div>
-        
+        {/* ...existing code... */}
         <div className="stat-card secondary">
           <div className="stat-header">
             <div className="stat-icon" style={{background: 'var(--gradient-secondary)'}}>📈</div>
             <div>
               <div className="stat-label">Total Inflow</div>
-              <div className="stat-value">{currency(rows.filter(r => r.amount > 0).reduce((sum, r) => sum + r.amount, 0))}</div>
+              <div className="stat-value">{currency(filteredRows.filter(r => r.amount > 0).reduce((sum, r) => sum + r.amount, 0))}</div>
             </div>
           </div>
           <div className="stat-change positive">Money received</div>
         </div>
-        
+        {/* ...existing code... */}
         <div className="stat-card accent">
           <div className="stat-header">
             <div className="stat-icon" style={{background: 'var(--gradient-accent)'}}>📉</div>
             <div>
               <div className="stat-label">Total Outflow</div>
-              <div className="stat-value">{currency(Math.abs(rows.filter(r => r.amount < 0).reduce((sum, r) => sum + r.amount, 0)))}</div>
+              <div className="stat-value">{currency(Math.abs(filteredRows.filter(r => r.amount < 0).reduce((sum, r) => sum + r.amount, 0)))}</div>
             </div>
           </div>
           <div className="stat-change negative">Money spent</div>
@@ -86,10 +119,9 @@ function BankHistory({ salesUrl, token }) {
         <div className="card-header">
           <div>
             <h3 className="card-title">Transaction Filters</h3>
-            <p className="card-description">Filter payment history by bank or criteria</p>
+            <p className="card-description">Filter payment history by bank, type, or reference</p>
           </div>
         </div>
-        
         <div className="form-grid form-grid-3">
           <div className="form-group">
             <label className="form-label">Filter by Bank</label>
@@ -100,6 +132,24 @@ function BankHistory({ salesUrl, token }) {
                   {b.bankName || b.accountNumber || b._id}
                 </option>
               )}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Filter by Type</label>
+            <select value={typeFilter} onChange={onTypeChange} className="form-input">
+              <option value="">All Types</option>
+              {typeOptions.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Filter by Reference</label>
+            <select value={referenceFilter} onChange={onReferenceChange} className="form-input">
+              <option value="">All References</option>
+              {referenceOptions.map(ref => (
+                <option key={ref} value={ref}>{formatReference(ref)}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -113,8 +163,7 @@ function BankHistory({ salesUrl, token }) {
             <p className="table-subtitle">Complete history of all payment activities</p>
           </div>
         </div>
-        
-        {rows.length === 0 ? (
+        {filteredRows.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">💳</div>
             <div className="empty-title">No Payment History</div>
@@ -136,7 +185,7 @@ function BankHistory({ salesUrl, token }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(r => (
+                  {filteredRows.map(r => (
                     <tr key={r._id}>
                       <td>
                         <div className="datetime-cell">
@@ -182,7 +231,6 @@ function BankHistory({ salesUrl, token }) {
             </div>
           </>
         )}
-        
         {error && (
           <div className="alert alert-danger">
             <div className="alert-icon">❌</div>

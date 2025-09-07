@@ -6,6 +6,7 @@ function BranchSupply({ salesUrl, token }) {
   const [totalValue, setTotalValue] = React.useState(0);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [productFilter, setProductFilter] = React.useState('');
 
   const loadBranches = async () => {
     try {
@@ -103,6 +104,15 @@ function BranchSupply({ salesUrl, token }) {
 
   const currency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
 
+  const filteredStock = React.useMemo(() => {
+    if (!productFilter) {
+      return stock.filter(item => item.qty > 0); // Exclude products with qty 0
+    }
+    return stock
+      .filter(item => item.qty > 0) // Exclude products with qty 0
+      .filter(item => item.productNo?.toLowerCase().includes(productFilter.toLowerCase()));
+  }, [stock, productFilter]);
+
   return (
     <div>
       <div className="row" style={{justifyContent:'space-between'}}>
@@ -121,11 +131,20 @@ function BranchSupply({ salesUrl, token }) {
 
       <div className="card mt-3 table-card">
         <div className="table-title">Branch Stock</div>
-        {stock.length === 0 ? (
+        <div className="filter-section">
+          <input
+            type="text"
+            placeholder="Filter by Product No"
+            value={productFilter}
+            onChange={e => setProductFilter(e.target.value)}
+            style={{ marginBottom: '12px', padding: '8px', width: '100%' }}
+          />
+        </div>
+        {filteredStock.length === 0 ? (
           <div className="empty-state" style={{padding:24}}>
             <div className="empty-icon">📦</div>
             <div className="empty-title">No Products</div>
-            <div className="empty-sub">Select a branch to view its stock (or central stock if implemented).</div>
+            <div className="empty-sub">No products match the entered Product No.</div>
           </div>
         ) : (
           <div className="table-scroll">
@@ -133,7 +152,7 @@ function BranchSupply({ salesUrl, token }) {
               <thead>
                 <tr>
                   <th>Product No</th>
-                  <th></th>
+                  
                   <th>Product Name</th>
                   <th>Brand</th>
                   <th>Model</th>
@@ -147,13 +166,12 @@ function BranchSupply({ salesUrl, token }) {
                 </tr>
               </thead>
               <tbody>
-                {stock.map(s => {
+                {filteredStock.map(s => {
                   const pid = s.productId || s._id;
                   const sel = selectedRows[pid] || { qty: 0, value: 0 };
                   return (
                     <tr key={pid}>
                       <td>{s.productNo || '-'}</td>
-                      <td><input type="checkbox" checked={sel.qty>0} onChange={e => onQtyChange(pid, e.target.checked ? 1 : 0)} /></td>
                       <td>{s.productName || '-'}</td>
                       <td>{s.brand || '-'}</td>
                       <td>{s.model || '-'}</td>
