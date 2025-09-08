@@ -181,7 +181,13 @@ exports.listBranchStock = async (req, res) => {
   // optional query filters
   const productNoFilter = (req.query.productNo || req.query.product_no || '').toString();
   const customerNo = (req.query.customerNo || req.query.customer_no || '').toString();
-    const branch_id = req.query.branch_id || null;
+    let branch_id = req.query.branch_id || null;
+    
+    // If this is a branch user, force filter to their branch only
+    if (req.user.isBranch && req.user.branch_id) {
+      branch_id = req.user.branch_id;
+    }
+    
     const onlyBranch = (req.query.only_branch === '1' || req.query.only_branch === 'true');
 
     // If client requests only branch-specific stock, return BranchStock rows only
@@ -355,7 +361,17 @@ exports.listBranchStock = async (req, res) => {
 exports.listSuppliesForShop = async (req, res) => {
   try {
     const shop_id = req.user.shop_id;
-    let supplies = await BranchSupply.find({ shop_id }).sort({ createdAt: -1 }).lean();
+    let branch_id = req.query.branch_id || null;
+    
+    // If this is a branch user, force filter to their branch only
+    if (req.user.isBranch && req.user.branch_id) {
+      branch_id = req.user.branch_id;
+    }
+    
+    const query = { shop_id };
+    if (branch_id) query.branch_id = branch_id;
+    
+    let supplies = await BranchSupply.find(query).sort({ createdAt: -1 }).lean();
 
     // Enrich items by backfilling brand/model/validity and supplier from central InStock docs
     // Collect all referenced central doc ids

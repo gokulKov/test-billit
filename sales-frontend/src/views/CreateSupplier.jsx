@@ -7,6 +7,17 @@ function CreateSupplier({ salesUrl, token }) {
   const [page, setPage] = React.useState(1);
   const [pageSize] = React.useState(10);
 
+  // Feature context
+  const { features, getFeatureLimit, isLimitReached } = window.useSalesFeatures ? window.useSalesFeatures() : { 
+    features: {}, 
+    getFeatureLimit: () => 999, 
+    isLimitReached: () => false 
+  };
+
+  const supplierLimit = getFeatureLimit('suppliers_limit', 'maxSuppliers');
+  const currentSupplierCount = rows.length;
+  const isAtLimit = isLimitReached('suppliers_limit', 'maxSuppliers', currentSupplierCount);
+
   // Filters
   const [agencyFilter, setAgencyFilter] = React.useState('');
   const [phoneFilter, setPhoneFilter] = React.useState('');
@@ -127,6 +138,13 @@ function CreateSupplier({ salesUrl, token }) {
   // --- submit ---
   const submit = async (e) => {
     e.preventDefault();
+    
+    // Check limit before creating
+    if (isAtLimit) {
+      window.checkSalesFeatureLimit('suppliers_limit', 'maxSuppliers', currentSupplierCount, features, 'Supplier');
+      return;
+    }
+    
     setSaving(true);
     setError('');
     try {
@@ -148,9 +166,55 @@ function CreateSupplier({ salesUrl, token }) {
 
   return (
     <div>
+      {/* Limit Warning */}
+      {React.createElement(window.LimitGuard, {
+        featureKey: 'suppliers_limit',
+        limitKey: 'maxSuppliers',
+        currentCount: currentSupplierCount,
+        featureName: 'Supplier',
+        showWarningAt: 0.8
+      }, null)}
+      
       {/* Filter Box */}
      
       <div className="card">
+        <div className="card-header">
+          <div>
+            <h3 className="card-title">Create Supplier</h3>
+            <p className="card-description">
+              Add new supplier for your inventory 
+              {supplierLimit < 999 && ` (${currentSupplierCount}/${supplierLimit} used)`}
+            </p>
+          </div>
+        </div>
+
+        {/* Show limit reached message */}
+        {isAtLimit && (
+          <div style={{
+            backgroundColor: '#fee2e2',
+            border: '1px solid #fecaca',
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            margin: '1rem',
+            color: '#991b1b'
+          }}>
+            🚫 Supplier limit reached ({currentSupplierCount}/{supplierLimit}). 
+            <button 
+              onClick={() => window.open('/pricing', '_blank')}
+              style={{
+                marginLeft: '0.5rem',
+                color: '#1d4ed8',
+                textDecoration: 'underline',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Upgrade for more suppliers
+            </button>
+          </div>
+        )}
+        
         <form onSubmit={submit}>
           <div className="row mt-2">
             <div className="col">

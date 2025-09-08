@@ -1,243 +1,225 @@
 function BankHistory({ salesUrl, token }) {
-  const [banks, setBanks] = React.useState([]);
-  const [bankId, setBankId] = React.useState('');
-  const [rows, setRows] = React.useState([]);
-  const [error, setError] = React.useState('');
-  const [typeFilter, setTypeFilter] = React.useState('');
-  const [referenceFilter, setReferenceFilter] = React.useState('');
-
-  const loadBanks = async () => {
-    try {
-      const res = await fetch(salesUrl + '/api/banks', { headers: { Authorization: 'Bearer ' + token } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to load banks');
-      setBanks(Array.isArray(data.banks) ? data.banks : []);
-    } catch (e) { setError(e.message); }
-  };
-  const loadTxns = async (id) => {
-    try {
-      setError('');
-      const url = new URL(salesUrl + '/api/bank-transactions');
-      if (id) url.searchParams.set('bank_id', id);
-      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to load');
-      setRows(Array.isArray(data.transactions) ? data.transactions : []);
-    } catch (e) { setError(e.message); }
-  };
-  React.useEffect(() => { loadBanks(); loadTxns(); }, []);
-
-  const onBankChange = (e) => { const id = e.target.value; setBankId(id); loadTxns(id); };
-  const onTypeChange = (e) => { setTypeFilter(e.target.value); };
-  const onReferenceChange = (e) => { setReferenceFilter(e.target.value); };
-  const currency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
-
-  // Normalize/format reference labels for UI and filtering
-  const formatReference = (ref) => {
-    if (!ref) return '-';
-    try {
-      const s = String(ref || '').trim();
-      if (!s) return '-';
-      // Common patterns created by the server
-      if (s.startsWith('Sale:')) return 'Sale completed';
-      if (s.toLowerCase().includes('instock')) return 'In-stock payment';
-      if (s.toLowerCase().includes('supplier')) return 'Supplier payment';
-      // Fallback: shorten long ids but keep readable
-      if (s.length > 40) return s.slice(0, 36) + '…';
-      return s;
-    } catch (e) { return '-'; }
-  };
-
-  // Extract unique types and references from rows
-  const typeOptions = React.useMemo(() => {
-    const set = new Set();
-    rows.forEach(r => r.type && set.add(r.type));
-    return Array.from(set);
-  }, [rows]);
-
-  const referenceOptions = React.useMemo(() => {
-    const set = new Set();
-    rows.forEach(r => {
-      const label = formatReference(r.reference);
-      if (label && label !== '-') set.add(label);
-    });
-    return Array.from(set);
-  }, [rows]);
-
-  // Filter rows based on selected filters
-  const filteredRows = React.useMemo(() => {
-    return rows.filter(r => {
-      const typeMatch = !typeFilter || r.type === typeFilter;
-      const refMatch = !referenceFilter || formatReference(r.reference) === referenceFilter;
-      return typeMatch && refMatch;
-    });
-  }, [rows, typeFilter, referenceFilter]);
-
   
-
-  return (
-    <div>
-      {/* Statistics Cards */}
-      <div className="stats-grid">
-        {/* ...existing code... */}
-        <div className="stat-card">
-          <div className="stat-header">
-            <div className="stat-icon">💰</div>
-            <div>
-              <div className="stat-label">Total Transactions</div>
-              <div className="stat-value">{filteredRows.length}</div>
-            </div>
-          </div>
-          <div className="stat-change">All payment activities</div>
-        </div>
-        {/* ...existing code... */}
-        <div className="stat-card secondary">
-          <div className="stat-header">
-            <div className="stat-icon" style={{background: 'var(--gradient-secondary)'}}>📈</div>
-            <div>
-              <div className="stat-label">Total Inflow</div>
-              <div className="stat-value">{currency(filteredRows.filter(r => r.amount > 0).reduce((sum, r) => sum + r.amount, 0))}</div>
-            </div>
-          </div>
-          <div className="stat-change positive">Money received</div>
-        </div>
-        {/* ...existing code... */}
-        <div className="stat-card accent">
-          <div className="stat-header">
-            <div className="stat-icon" style={{background: 'var(--gradient-accent)'}}>📉</div>
-            <div>
-              <div className="stat-label">Total Outflow</div>
-              <div className="stat-value">{currency(Math.abs(filteredRows.filter(r => r.amount < 0).reduce((sum, r) => sum + r.amount, 0)))}</div>
-            </div>
-          </div>
-          <div className="stat-change negative">Money spent</div>
-        </div>
-      </div>
-
-      {/* Filters Section */}
-      <div className="card">
-        <div className="card-header">
-          <div>
-            <h3 className="card-title">Transaction Filters</h3>
-            <p className="card-description">Filter payment history by bank, type, or reference</p>
-          </div>
-        </div>
-        <div className="form-grid form-grid-3">
-          <div className="form-group">
-            <label className="form-label">Filter by Bank</label>
-            <select value={bankId} onChange={onBankChange} className="form-input">
-              <option value="">All Banks</option>
-              {banks.map(b => 
-                <option key={b._id} value={b._id}>
-                  {b.bankName || b.accountNumber || b._id}
-                </option>
-              )}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Filter by Type</label>
-            <select value={typeFilter} onChange={onTypeChange} className="form-input">
-              <option value="">All Types</option>
-              {typeOptions.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Filter by Reference</label>
-            <select value={referenceFilter} onChange={onReferenceChange} className="form-input">
-              <option value="">All References</option>
-              {referenceOptions.map(ref => (
-                <option key={ref} value={ref}>{formatReference(ref)}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Payment History Table */}
-      <div className="table-card">
-        <div className="table-header">
-          <div>
-            <h3 className="table-title">Payment Transactions</h3>
-            <p className="table-subtitle">Complete history of all payment activities</p>
-          </div>
-        </div>
-        {filteredRows.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">💳</div>
-            <div className="empty-title">No Payment History</div>
-            <div className="empty-description">Payment transactions will appear here once you start making payments</div>
-          </div>
-        ) : (
-          <>
-            <div className="table-scroll">
-              <table className="modern-table">
-                <thead>
-                  <tr>
-                    <th style={{width: '180px'}}>Date & Time</th>
-                    <th style={{width: '150px'}}>Bank Account</th>
-                    <th style={{width: '100px'}}>Type</th>
-                    <th style={{width: '120px'}}>Amount</th>
-                    <th style={{width: '140px'}}>Reference</th>
-                    <th style={{width: '150px'}}>Supplier</th>
-                    <th style={{width: '120px'}}>Balance After</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRows.map(r => (
-                    <tr key={r._id}>
-                      <td>
-                        <div className="datetime-cell">
-                          <div className="date-part">{new Date(r.createdAt).toLocaleDateString()}</div>
-                          <div className="time-part">{new Date(r.createdAt).toLocaleTimeString()}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="bank-cell">
-                          <span className="cell-strong">{r.bank_id?.bankName || 'Unknown Bank'}</span>
-                          <div className="cell-sub">{r.bank_id?.accountNumber || '-'}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${r.amount > 0 ? 'success' : 'danger'}`}>
-                          {r.type}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`amount-badge ${r.amount > 0 ? 'positive' : 'negative'}`}>
-                          {currency(r.amount)}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="reference-cell">
-                          {formatReference(r.reference)}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="supplier-cell">
-                          {r.supplier_id?.supplierName || '-'}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="balance-badge">
-                          {currency(r.balanceAfter)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-        {error && (
-          <div className="alert alert-danger">
-            <div className="alert-icon">❌</div>
-            <div>{error}</div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  // Use basic state management
+  const [data, setData] = React.useState({
+    banks: [],
+    transactions: [],
+    loading: true,
+    error: null
+  });
+  
+  // Use basic refs for filters to avoid state update loops
+  const bankIdRef = React.useRef('');
+  const typeFilterRef = React.useRef('');
+  
+  // Simple data loading function
+  const loadData = React.useCallback(async () => {
+    try {
+      setData(prev => ({ ...prev, loading: true, error: null }));
+      
+      // Load banks
+      const banksRes = await fetch(salesUrl + '/api/banks', { 
+        headers: { Authorization: 'Bearer ' + token } 
+      });
+      const banksData = await banksRes.json();
+      
+      // Load transactions  
+      const txnsRes = await fetch(salesUrl + '/api/bank-transactions', { 
+        headers: { Authorization: 'Bearer ' + token } 
+      });
+      const txnsData = await txnsRes.json();
+      
+      setData({
+        banks: Array.isArray(banksData.banks) ? banksData.banks : [],
+        transactions: Array.isArray(txnsData.transactions) ? txnsData.transactions : [],
+        loading: false,
+        error: null
+      });
+      
+    } catch (error) {
+      setData(prev => ({ ...prev, loading: false, error: error.message }));
+    }
+  }, [salesUrl, token]);
+  
+  // Load data on mount
+  React.useEffect(() => {
+    loadData();
+  }, [loadData]);
+  
+  if (data.loading) {
+    return React.createElement('div', {
+      style: { 
+        padding: '40px', 
+        textAlign: 'center',
+        fontSize: '18px',
+        color: '#6b7280'
+      }
+    }, '⏳ Loading Payment History...');
+  }
+  
+  if (data.error) {
+    return React.createElement('div', {
+      style: { 
+        padding: '20px',
+        backgroundColor: '#fee2e2',
+        border: '1px solid #fca5a5',
+        borderRadius: '8px',
+        margin: '20px',
+        color: '#dc2626'
+      }
+    }, '❌ Error: ' + data.error);
+  }
+  
+  return React.createElement('div', {
+    style: { padding: '20px' }
+  }, [
+    React.createElement('h2', { 
+      key: 'title',
+      style: { marginBottom: '20px', color: '#1f2937' }
+    }, '🏦 Payment History'),
+    
+    React.createElement('div', {
+      key: 'stats',
+      style: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '16px',
+        marginBottom: '24px'
+      }
+    }, [
+      React.createElement('div', {
+        key: 'total',
+        style: {
+          backgroundColor: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '16px'
+        }
+      }, [
+        React.createElement('h3', { 
+          key: 'label',
+          style: { margin: '0 0 8px 0', color: '#6b7280', fontSize: '14px' }
+        }, 'Total Transactions'),
+        React.createElement('p', { 
+          key: 'value',
+          style: { margin: '0', fontSize: '24px', fontWeight: 'bold', color: '#1f2937' }
+        }, data.transactions.length)
+      ]),
+      
+      React.createElement('div', {
+        key: 'banks',
+        style: {
+          backgroundColor: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '16px'
+        }
+      }, [
+        React.createElement('h3', { 
+          key: 'label',
+          style: { margin: '0 0 8px 0', color: '#6b7280', fontSize: '14px' }
+        }, 'Connected Banks'),
+        React.createElement('p', { 
+          key: 'value',
+          style: { margin: '0', fontSize: '24px', fontWeight: 'bold', color: '#1f2937' }
+        }, data.banks.length)
+      ])
+    ]),
+    
+    React.createElement('div', {
+      key: 'content',
+      style: {
+        backgroundColor: '#ffffff',
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '20px'
+      }
+    }, [
+      React.createElement('h3', { 
+        key: 'subtitle',
+        style: { marginTop: '0', marginBottom: '16px', color: '#1f2937' }
+      }, 'Recent Transactions'),
+      
+      data.transactions.length === 0 ? 
+        React.createElement('div', {
+          key: 'empty',
+          style: { 
+            textAlign: 'center', 
+            padding: '40px',
+            color: '#6b7280'
+          }
+        }, [
+          React.createElement('div', { 
+            key: 'icon',
+            style: { fontSize: '48px', marginBottom: '16px' }
+          }, '💳'),
+          React.createElement('p', { 
+            key: 'msg',
+            style: { margin: '0' }
+          }, 'No transactions found')
+        ]) :
+        React.createElement('div', {
+          key: 'table',
+          style: { overflowX: 'auto' }
+        }, React.createElement('table', {
+          style: { 
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: '14px'
+          }
+        }, [
+          React.createElement('thead', { key: 'thead' }, 
+            React.createElement('tr', {}, [
+              React.createElement('th', { 
+                key: 'date',
+                style: { padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }
+              }, 'Date'),
+              React.createElement('th', { 
+                key: 'bank',
+                style: { padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }
+              }, 'Bank'),
+              React.createElement('th', { 
+                key: 'type',
+                style: { padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }
+              }, 'Type'),
+              React.createElement('th', { 
+                key: 'amount',
+                style: { padding: '12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb' }
+              }, 'Amount')
+            ])
+          ),
+          React.createElement('tbody', { key: 'tbody' }, 
+            data.transactions.slice(0, 10).map((txn, index) => 
+              React.createElement('tr', { key: txn._id || index }, [
+                React.createElement('td', { 
+                  key: 'date',
+                  style: { padding: '12px', borderBottom: '1px solid #f3f4f6' }
+                }, new Date(txn.createdAt).toLocaleDateString()),
+                React.createElement('td', { 
+                  key: 'bank',
+                  style: { padding: '12px', borderBottom: '1px solid #f3f4f6' }
+                }, txn.bank_id?.bankName || 'Unknown'),
+                React.createElement('td', { 
+                  key: 'type',
+                  style: { padding: '12px', borderBottom: '1px solid #f3f4f6' }
+                }, txn.type || 'Unknown'),
+                React.createElement('td', { 
+                  key: 'amount',
+                  style: { 
+                    padding: '12px', 
+                    borderBottom: '1px solid #f3f4f6',
+                    textAlign: 'right',
+                    color: txn.amount >= 0 ? '#059669' : '#dc2626',
+                    fontWeight: 'bold'
+                  }
+                }, '₹' + (txn.amount || 0).toLocaleString())
+              ])
+            )
+          )
+        ]))
+    ])
+  ]);
 }
+
+// COMPLETELY REMOVE THE WRAPPER - REGISTER COMPONENT DIRECTLY
+window.BankHistory = BankHistory;

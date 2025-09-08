@@ -1,4 +1,4 @@
-// CreateBank view implementation moved from main.jsx
+// CreateBank view implementation with feature controls
 function CreateBank({ salesUrl, token }) {
   const [form, setForm] = React.useState({
     bankName: '', accountNumber: '', holderName: '', address: '', phoneNumber: '', accountBalance: ''
@@ -8,6 +8,17 @@ function CreateBank({ salesUrl, token }) {
   const [error, setError] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize] = React.useState(10);
+
+  // Feature context
+  const { features, getFeatureLimit, isLimitReached } = window.useSalesFeatures ? window.useSalesFeatures() : { 
+    features: {}, 
+    getFeatureLimit: () => 999, 
+    isLimitReached: () => false 
+  };
+
+  const bankLimit = getFeatureLimit('bank_accounts_limit', 'maxBankAccounts');
+  const currentBankCount = rows.length;
+  const isAtLimit = isLimitReached('bank_accounts_limit', 'maxBankAccounts', currentBankCount);
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -32,6 +43,13 @@ function CreateBank({ salesUrl, token }) {
 
   const submit = async (e) => {
     e.preventDefault();
+    
+    // Check limit before creating
+    if (isAtLimit) {
+      window.checkSalesFeatureLimit('bank_accounts_limit', 'maxBankAccounts', currentBankCount, features, 'Bank Account');
+      return;
+    }
+    
     setSaving(true);
     setError('');
     try {
@@ -71,13 +89,52 @@ function CreateBank({ salesUrl, token }) {
 
   return (
     <div>
+      {/* Limit Warning */}
+      {React.createElement(window.LimitGuard, {
+        featureKey: 'bank_accounts_limit',
+        limitKey: 'maxBankAccounts',
+        currentCount: currentBankCount,
+        featureName: 'Bank Account',
+        showWarningAt: 0.8
+      }, null)}
+      
       <div className="card">
         <div className="card-header">
           <div>
             <h3 className="card-title">Create Payment Method</h3>
-            <p className="card-description">Add new bank account or payment method</p>
+            <p className="card-description">
+              Add new bank account or payment method 
+              {bankLimit < 999 && ` (${currentBankCount}/${bankLimit} used)`}
+            </p>
           </div>
         </div>
+        
+        {/* Show limit reached message */}
+        {isAtLimit && (
+          <div style={{
+            backgroundColor: '#fee2e2',
+            border: '1px solid #fecaca',
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            margin: '1rem',
+            color: '#991b1b'
+          }}>
+            🚫 Bank account limit reached ({currentBankCount}/{bankLimit}). 
+            <button 
+              onClick={() => window.open('/pricing', '_blank')}
+              style={{
+                marginLeft: '0.5rem',
+                color: '#1d4ed8',
+                textDecoration: 'underline',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Upgrade for more accounts
+            </button>
+          </div>
+        )}
         
         <form onSubmit={submit}>
           <div className="form-grid form-grid-2">

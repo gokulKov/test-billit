@@ -1,141 +1,239 @@
 function BranchSupplyHistory({ salesUrl, token }) {
-  const [rows, setRows] = React.useState([]);
-  const [branches, setBranches] = React.useState([]);
+  
+  // Safe state management
+  const [data, setData] = React.useState({
+    supplies: [],
+    branches: [],
+    loading: true,
+    error: null
+  });
+  
   const [branchId, setBranchId] = React.useState('');
-  const [error, setError] = React.useState('');
   const [filterDate, setFilterDate] = React.useState('');
 
-  const loadBranches = async () => {
+  // Simple data loading function
+  const loadData = React.useCallback(async (bid = '') => {
     try {
-      const res = await fetch(salesUrl + '/api/branches', { headers: { Authorization: 'Bearer ' + token } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to load branches');
-      setBranches(Array.isArray(data.branches) ? data.branches : []);
-    } catch (e) { setError(e.message); }
-  };
-
-  const load = async (bid) => {
-    try {
-      setError('');
+      setData(prev => ({ ...prev, loading: true, error: null }));
+      
+      // Load branches
+      const branchesRes = await fetch(salesUrl + '/api/branches', { 
+        headers: { Authorization: 'Bearer ' + token } 
+      });
+      const branchesData = await branchesRes.json();
+      
+      // Load supplies
       const url = new URL(salesUrl + '/api/branch-supplies');
       if (bid) url.searchParams.set('branch_id', bid);
-      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to load');
-      setRows(Array.isArray(data.supplies) ? data.supplies : []);
-    } catch (e) { setError(e.message); }
+      const suppliesRes = await fetch(url, { 
+        headers: { Authorization: 'Bearer ' + token } 
+      });
+      const suppliesData = await suppliesRes.json();
+      
+      setData({
+        branches: Array.isArray(branchesData.branches) ? branchesData.branches : [],
+        supplies: Array.isArray(suppliesData.supplies) ? suppliesData.supplies : [],
+        loading: false,
+        error: null
+      });
+      
+    } catch (error) {
+      setData(prev => ({ ...prev, loading: false, error: error.message }));
+    }
+  }, [salesUrl, token]);
+
+  // Load data on mount
+  React.useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Handle branch change
+  const onBranchChange = (e) => {
+    const id = e.target.value;
+    setBranchId(id);
+    loadData(id);
   };
 
-  React.useEffect(() => { loadBranches(); load(); }, [token]);
-  React.useEffect(() => {
-    const onUpdated = (e) => {
-      // when branch stock changes, reload supplies (and branch list)
-      loadBranches();
-      load();
-    };
-    window.addEventListener('branch-stock-updated', onUpdated);
-    return () => window.removeEventListener('branch-stock-updated', onUpdated);
-  }, [token]);
-
-  const onBranchChange = (e) => { const id = e.target.value; setBranchId(id); load(id); };
-
-  const currency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n || 0);
-
-  const filteredRows = React.useMemo(() => {
-    if (!filterDate) return rows;
-    const selectedDate = new Date(filterDate).toDateString();
-    return rows.filter(supply => {
+  // Pre-process filtered data to avoid function calls in render
+  const processedData = React.useMemo(() => {
+    const filtered = !filterDate ? data.supplies : data.supplies.filter(supply => {
+      const selectedDate = new Date(filterDate).toDateString();
       const supplyDate = new Date(supply.createdAt || supply.updatedAt || new Date()).toDateString();
       return supplyDate === selectedDate;
     });
-  }, [rows, filterDate]);
 
-  return (
-    <div className="card table-card">
-      <div className="row" style={{ padding: '12px 12px 0 12px' }}>
-        <div className="col">
-          <label>Filter by Branch</label>
-          <select value={branchId} onChange={onBranchChange}>
-            <option value="">All branches</option>
-            {branches.map(b => <option key={b._id} value={b._id}>{b.name || b._id}</option>)}
-          </select>
-        </div>
-        <div className="col">
-          <label>Filter by Date</label>
-          <input
-            type="date"
-            value={filterDate}
-            onChange={e => setFilterDate(e.target.value)}
-            style={{ marginBottom: '12px', padding: '8px', width: '100%' }}
-          />
-        </div>
-      </div>
+    const flat = [];
+    filtered.forEach(s => {
+      const when = s.createdAt || s.updatedAt || new Date();
+      const supplier = s.supplier_id?.supplierName || s.supplierName || '-';
+      (Array.isArray(s.items) ? s.items : []).forEach(it => {
+        flat.push({
+          supplier,
+          productName: it.productName || it.name || '-',
+          brand: it.brand || '-',
+          model: it.model || '-',
+          costPrice: it.costPrice ?? it.cost ?? 0,
+          validity: it.validity || null,
+          pct: it.pct ?? null,
+          unitPrice: it.unitSellingPrice ?? it.sellingPrice ?? 0,
+          qty: it.qty ?? 0,
+          value: it.value ?? ((it.unitSellingPrice ?? it.sellingPrice ?? 0) * (it.qty ?? 0)),
+          when
+        });
+      });
+    });
 
-      <div className="table-scroll">
-        {branchId ? (
-          <table className="modern-table">
-            <thead>
-              <tr>
-                <th>Product Name</th>
-                <th>Brand</th>
-                <th>Model</th>
-                <th>Cost Price</th>
-                <th>Product Validity</th>
-                <th>Selling Price (pct / price)</th>
-                <th>Unit Price</th>
-                <th>Supply Qty</th>
-                <th>Supply Value</th>
-                <th>Sending Date & Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                const flat = [];
-                filteredRows.forEach(s => {
-                  const when = s.createdAt || s.updatedAt || new Date();
-                  const supplier = s.supplier_id?.supplierName || s.supplierName || '-';
-                  (Array.isArray(s.items) ? s.items : []).forEach(it => {
-                    flat.push({
-                      supplier,
-                      productName: it.productName || it.name || '-0',
-                      brand: it.brand || '-',
-                      model: it.model || '- ',
-                      costPrice: it.costPrice ?? it.cost ?? 0,
-                      validity: it.validity || null,
-                      pct: it.pct ?? null,
-                      unitPrice: it.unitSellingPrice ?? it.sellingPrice ?? 0,
-                      qty: it.qty ?? 0,
-                      value: it.value ?? ((it.unitSellingPrice ?? it.sellingPrice ?? 0) * (it.qty ?? 0)),
-                      when
-                    });
-                  });
-                });
-                if (flat.length === 0) return (<tr><td colSpan={11}><div className="empty-state"><div className="empty-icon">📦</div><div className="empty-title">No items found for this branch</div></div></td></tr>);
-                return flat.map((r, i) => (
-                  <tr key={i}>
-                    {/* <td>{r.supplier || '-'}</td> */}
-                    <td>{r.productName}</td>
-                    <td>{r.brand}</td>
-                    <td>{r.model}</td>
-                    <td>{r.costPrice != null ? currency(r.costPrice) : '-'}</td>
-                    <td>{r.validity ? new Date(r.validity).toLocaleDateString() : '-'}</td>
-                    <td>{r.pct != null ? `${r.pct}% / ${currency(r.unitPrice)}` : '-'}</td>
-                    <td>{currency(r.unitPrice)}</td>
-                    <td>{r.qty}</td>
-                    <td>{currency(r.value)}</td>
-                    <td>{new Date(r.when).toLocaleString()}</td>
-                  </tr>
-                ));
-              })()}
-            </tbody>
-          </table>
-        ) : ( ''
-                 )}
-      </div>
+    return flat;
+  }, [data.supplies, filterDate]);
 
-      {error ? <div className="mt-2 text-danger" style={{ padding: '0 12px 12px' }}>{error}</div> : null}
-    </div>
-  );
+  const currency = (n) => new Intl.NumberFormat('en-IN', { 
+    style: 'currency', 
+    currency: 'INR', 
+    maximumFractionDigits: 2 
+  }).format(n || 0);
+
+  if (data.loading) {
+    return React.createElement('div', {
+      style: { 
+        padding: '40px', 
+        textAlign: 'center',
+        fontSize: '18px',
+        color: '#6b7280'
+      }
+    }, '⏳ Loading Supply History...');
+  }
+
+  if (data.error) {
+    return React.createElement('div', {
+      style: { 
+        padding: '20px',
+        backgroundColor: '#fee2e2',
+        border: '1px solid #fca5a5',
+        borderRadius: '8px',
+        margin: '20px',
+        color: '#dc2626'
+      }
+    }, '❌ Error: ' + data.error);
+  }
+
+  return React.createElement('div', {
+    className: 'card table-card'
+  }, [
+    React.createElement('div', {
+      key: 'filters',
+      className: 'row',
+      style: { padding: '12px 12px 0 12px' }
+    }, [
+      React.createElement('div', {
+        key: 'branch-filter',
+        className: 'col'
+      }, [
+        React.createElement('label', { key: 'label' }, 'Filter by Branch'),
+        React.createElement('select', {
+          key: 'select',
+          value: branchId,
+          onChange: onBranchChange
+        }, [
+          React.createElement('option', { key: 'all', value: '' }, 'All branches'),
+          ...data.branches.map(b => 
+            React.createElement('option', { 
+              key: b._id, 
+              value: b._id 
+            }, b.name || b._id)
+          )
+        ])
+      ]),
+      React.createElement('div', {
+        key: 'date-filter',
+        className: 'col'
+      }, [
+        React.createElement('label', { key: 'label' }, 'Filter by Date'),
+        React.createElement('input', {
+          key: 'input',
+          type: 'date',
+          value: filterDate,
+          onChange: (e) => setFilterDate(e.target.value),
+          style: { marginBottom: '12px', padding: '8px', width: '100%' }
+        })
+      ])
+    ]),
+
+    React.createElement('div', {
+      key: 'content',
+      className: 'table-scroll'
+    }, branchId ? (
+      processedData.length === 0 ? 
+        React.createElement('div', {
+          style: { 
+            textAlign: 'center', 
+            padding: '40px',
+            color: '#6b7280'
+          }
+        }, [
+          React.createElement('div', { 
+            key: 'icon',
+            style: { fontSize: '48px', marginBottom: '16px' }
+          }, '📦'),
+          React.createElement('p', { 
+            key: 'msg',
+            style: { margin: '0' }
+          }, 'No supply history found for this branch')
+        ]) :
+        React.createElement('table', {
+          className: 'modern-table'
+        }, [
+          React.createElement('thead', { key: 'thead' }, 
+            React.createElement('tr', {}, [
+              React.createElement('th', { key: 'product' }, 'Product Name'),
+              React.createElement('th', { key: 'brand' }, 'Brand'),
+              React.createElement('th', { key: 'model' }, 'Model'),
+              React.createElement('th', { key: 'cost' }, 'Cost Price'),
+              React.createElement('th', { key: 'validity' }, 'Product Validity'),
+              React.createElement('th', { key: 'selling' }, 'Selling Price (pct / price)'),
+              React.createElement('th', { key: 'unit' }, 'Unit Price'),
+              React.createElement('th', { key: 'qty' }, 'Supply Qty'),
+              React.createElement('th', { key: 'value' }, 'Supply Value'),
+              React.createElement('th', { key: 'date' }, 'Sending Date & Time')
+            ])
+          ),
+          React.createElement('tbody', { key: 'tbody' }, 
+            processedData.map((r, i) => 
+              React.createElement('tr', { key: i }, [
+                React.createElement('td', { key: 'product' }, r.productName),
+                React.createElement('td', { key: 'brand' }, r.brand),
+                React.createElement('td', { key: 'model' }, r.model),
+                React.createElement('td', { key: 'cost' }, 
+                  r.costPrice != null ? currency(r.costPrice) : '-'
+                ),
+                React.createElement('td', { key: 'validity' }, 
+                  r.validity ? new Date(r.validity).toLocaleDateString() : '-'
+                ),
+                React.createElement('td', { key: 'selling' }, 
+                  r.pct != null ? `${r.pct}% / ${currency(r.unitPrice)}` : '-'
+                ),
+                React.createElement('td', { key: 'unit' }, currency(r.unitPrice)),
+                React.createElement('td', { key: 'qty' }, r.qty),
+                React.createElement('td', { key: 'value' }, currency(r.value)),
+                React.createElement('td', { key: 'date' }, new Date(r.when).toLocaleString())
+              ])
+            )
+          )
+        ])
+    ) : React.createElement('div', {
+      style: { 
+        textAlign: 'center', 
+        padding: '40px',
+        color: '#6b7280'
+      }
+    }, 'Please select a branch to view supply history')),
+
+    data.error ? React.createElement('div', {
+      key: 'error',
+      className: 'mt-2 text-danger',
+      style: { padding: '0 12px 12px' }
+    }, data.error) : null
+  ]);
 }
 
+// Register component directly without wrapper to prevent infinite loops
 window.BranchSupplyHistory = BranchSupplyHistory;

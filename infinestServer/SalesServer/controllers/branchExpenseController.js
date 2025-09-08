@@ -35,7 +35,13 @@ exports.createBranchExpense = async (req, res) => {
 exports.listExpensesForShop = async (req, res) => {
   try {
     const shop_id = req.user.shop_id;
-    const branch_id = req.query.branch_id || null;
+    let branch_id = req.query.branch_id || null;
+    
+    // If this is a branch user, force filter to their branch only
+    if (req.user.isBranch && req.user.branch_id) {
+      branch_id = req.user.branch_id;
+    }
+    
     const q = { shop_id };
     if (branch_id) q.branch_id = branch_id;
     const expenses = await BranchExpense.find(q).sort({ createdAt: -1 }).lean();
@@ -50,7 +56,12 @@ exports.listExpensesForShop = async (req, res) => {
 exports.summaryForDateRange = async (req, res) => {
   try {
     const shop_id = req.user.shop_id;
-    const branch_id = req.query.branch_id || req.user.branch_id || null;
+    let branch_id = req.query.branch_id || req.user.branch_id || null;
+    
+    // If this is a branch user, force filter to their branch only
+    if (req.user.isBranch && req.user.branch_id) {
+      branch_id = req.user.branch_id;
+    }
 
     // Accept either a single date (YYYY-MM-DD) or start/end ISO strings
     const dateStr = req.query.date || null;

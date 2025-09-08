@@ -38,13 +38,15 @@ function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.message || 'Login failed');
       if (!data.token) throw new Error('No token returned');
-  // Ensure branch token is removed so only one token type exists in this browser
-  try { localStorage.removeItem('branch_token'); } catch (e) {}
-  localStorage.setItem('sales_token', data.token);
-  setToken(data.token);
-  setHasAccess(true);
-  setBranchUser(null);
-  try { window.dispatchEvent(new Event('sales-login')); } catch (__) {}
+      
+      // Ensure branch token is removed so only one token type exists in this browser
+      try { localStorage.removeItem('branch_token'); } catch (e) {}
+      localStorage.setItem('sales_token', data.token);
+      setToken(data.token);
+      setHasAccess(true);
+      setBranchUser(null);
+      try { window.dispatchEvent(new Event('sales-login')); } catch (__) {}
+      
       const payload = data.payload || decodeJwt(data.token);
       if (payload?.mongoPlanId) setPlanId(payload.mongoPlanId);
       if (Number.isFinite(payload?.branchLimit)) setBranchLimit(payload.branchLimit);
@@ -251,6 +253,25 @@ function App() {
     location.hash = '#bank';
   };
 
+  const branchLogout = () => {
+    // Only remove branch token, keep sales token for admin
+    localStorage.removeItem('branch_token');
+    setBranchUser(null);
+    // Restore admin access by checking existing sales token
+    const salesToken = localStorage.getItem('sales_token');
+    if (salesToken) {
+      setToken(salesToken);
+      checkAccess(salesToken);
+      // Trigger feature reload for admin account
+      try { 
+        window.dispatchEvent(new Event('sales-login')); 
+      } catch (e) {
+        console.log('Event dispatch failed:', e);
+      }
+    }
+    location.hash = '#bank';
+  };
+
   // Helper function to get page title
   const getTitle = () => {
     if (branchUser) return 'Branch Dashboard';
@@ -316,7 +337,10 @@ function App() {
         {view === 'bank' ? (
           <CreateBank salesUrl={SALES_URL} token={effectiveToken} />
         ) : view === 'bank-history' ? (
-          <BankHistory salesUrl={SALES_URL} token={effectiveToken} />
+          window.BankHistory ? React.createElement(window.BankHistory, { 
+            salesUrl: SALES_URL, 
+            token: effectiveToken 
+          }) : React.createElement('div', { style: { padding: '20px' } }, 'Loading Payment History...')
         ) : (!branchUser && view === 'gst-calculator') ? (
           (window.GstCalculatorView ? React.createElement(window.GstCalculatorView) : (
             <div className="card"><div className="empty-state"><div className="empty-icon">🧮</div><div className="empty-title">Loading…</div></div></div>
@@ -407,7 +431,7 @@ function App() {
           email: branchUser?.email || email,
           role: branchUser ? 'Branch Manager' : 'Administrator'
         }}
-        onLogout={logout}
+        onLogout={branchUser ? branchLogout : logout}
         active={view}
         onSelect={setView}
         planId={planId}
@@ -431,7 +455,7 @@ function App() {
             email: branchUser?.email || email,
             role: branchUser ? 'Branch Manager' : 'Administrator'
           }}
-          onLogout={logout}
+          onLogout={branchUser ? branchLogout : logout}
         />
 
         <div className="content">
@@ -718,7 +742,6 @@ function CreateBranch({ salesUrl, token, planId, branchLimit = 0 }) {
                       </td>
                       <td>
                         <span className="cell-strong">{r.name || '-'}</span>
-                        {r.isAdmin && <span className="status-badge success ml-2">Admin</span>}
                       </td>
                       <td>{r.address || '-'}</td>
                       <td>{r.phoneNumber || '-'}</td>
@@ -766,4 +789,10 @@ function CreateBranch({ salesUrl, token, planId, branchLimit = 0 }) {
 
 const rootEl = document.getElementById('root');
 const root = ReactDOM.createRoot(rootEl);
-root.render(<App />);
+
+// Wrap App with SalesFeatureProvider
+const AppWithFeatures = () => {
+  return React.createElement(window.SalesFeatureProvider, {}, React.createElement(App));
+};
+
+root.render(React.createElement(AppWithFeatures));

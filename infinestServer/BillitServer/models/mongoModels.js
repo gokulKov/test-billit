@@ -191,6 +191,11 @@ const featureSchema = new mongoose.Schema({
     totalPages: Number,
     entriesPerPage: Number,
     maxPerCreation: Number,
+    // Sales-specific config fields
+    maxBankAccounts: Number,
+    maxSuppliers: Number,
+    maxBranches: Number,
+    maxProducts: Number,
   },
   description: { type: String }
 });

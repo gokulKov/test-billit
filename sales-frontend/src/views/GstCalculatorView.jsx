@@ -1,5 +1,6 @@
 function GstCalculatorView() {
   const [transactions, setTransactions] = React.useState([]);
+  
   React.useEffect(() => {
     const salesUrl = window.SALES_URL || 'http://127.0.0.1:9000';
     const token = localStorage.getItem('sales_token') || '';
@@ -26,7 +27,12 @@ function GstCalculatorView() {
         }
       });
   }, []);
-  return React.createElement(window.GstCalculator, { transactions });
+  
+  return React.createElement(window.FeatureGuard, {
+    featureKey: 'gst_calculator_enabled',
+    featureName: 'GST Calculator',
+    requiredPlans: 'Gold/Premium'
+  }, React.createElement(window.GstCalculator, { transactions }));
 }
 
 window.GstCalculatorView = GstCalculatorView;

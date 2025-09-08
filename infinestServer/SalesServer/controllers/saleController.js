@@ -3,7 +3,13 @@ const Sale = require('../models/sale');
 exports.listSales = async (req, res) => {
   try {
     const shop_id = req.user.shop_id;
-    const branch_id = req.query.branch_id || req.user.branch_id || null;
+    let branch_id = req.query.branch_id || req.user.branch_id || null;
+    
+    // If this is a branch user, force filter to their branch only
+    if (req.user.isBranch && req.user.branch_id) {
+      branch_id = req.user.branch_id;
+    }
+    
     const page = Math.max(1, Number(req.query.page || 1));
     const pageSize = Math.min(100, Math.max(10, Number(req.query.pageSize || 25)));
     const q = { shop_id };

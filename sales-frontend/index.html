@@ -16,7 +16,13 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Babel Standalone to compile JSX in the browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Load components and views first, then our entry -->
+  
+  <!-- Load context and utilities first -->
+  <script type="text/babel" data-presets="react" src="/src/context/SalesFeatureContext.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/src/utils/salesFeatureAccess.js"></script>
+  <script type="text/babel" data-presets="react" src="/src/components/FeatureGuard.jsx"></script>
+  
+  <!-- Load components and views -->
   <script type="text/babel" data-presets="react" src="/src/components/Sidebar.jsx"></script>
   <script type="text/babel" data-presets="react" src="/src/components/HeaderBar.jsx"></script>
   <script type="text/babel" data-presets="react" src="/src/components/Nav.jsx"></script>
@@ -56,3 +62,5 @@
   <script type="text/babel" data-presets="react" src="/main.jsx"></script>
   </body>
   </html>
+
+<script src='test-integration.js'></script>

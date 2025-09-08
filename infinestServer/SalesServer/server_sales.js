@@ -21,6 +21,7 @@ const whatsappStockRoutes = require('./routes/whatsappStockRoutes');
 const whatsappSaleRoutes = require('./routes/whatsappSaleRoutes');
 const mysqlUserRoutes = require('./routes/mysqlUserRoutes');
 const secondsSalesRoutes = require('./routes/secondsSalesRoutes');
+const featureRoutes = require('./routes/featureRoutes');
 
 const { syncSalesUser } = require('./controllers/salesSyncController');
 const app = express();
@@ -182,7 +183,8 @@ app.post('/auth/login', async (req, res) => {
     if (!verifyRes.data?.valid) return res.status(401).json({ message: 'Invalid token' });
     const userId = verifyRes.data.user.userId;
 
-    // Check SALES access to get mongoPlanId
+    // Check SALES access to get sales-specific mongoPlanId
+    console.log('🔍 Checking SALES access for user:', userId);
     const accessRes = await axios.post(`${process.env.AUTH_SERVER_URL}/get-user-sales-access`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -190,7 +192,22 @@ app.post('/auth/login', async (req, res) => {
     if (!hasAccess) {
       return res.status(403).json({ message: 'No active SALES subscription for this user' });
     }
-    const mongoPlanId = accessRes.data?.mongoPlanId || null;
+    
+    // Get the original plan from the access check
+    let mongoPlanId = accessRes.data?.mongoPlanId || null;
+    console.log('🔍 Original plan from auth server:', mongoPlanId);
+    
+    // Convert service plans to sales plans for Sales app context
+    if (mongoPlanId) {
+      if (mongoPlanId.startsWith('service-')) {
+        // Convert service-basic -> sales-basic, service-premium -> sales-premium, etc.
+        const planLevel = mongoPlanId.replace('service-', '');
+        mongoPlanId = `sales-${planLevel}`;
+        console.log(`🔄 Converted service plan to sales plan: ${accessRes.data.mongoPlanId} -> ${mongoPlanId}`);
+      }
+    }
+    
+    console.log('✅ Final sales plan ID:', mongoPlanId);
 
     // Find or create a Shop by mysql_user_id
     let shop = await Shop.findOne({ mysql_user_id: userId });
@@ -373,6 +390,7 @@ app.use(whatsappStockRoutes);
 app.use(whatsappSaleRoutes);
 app.use(mysqlUserRoutes);
 app.use(secondsSalesRoutes);
+app.use(featureRoutes);
 
 const PORT = process.env.SALES_PORT || 9000;
 app.listen(PORT, '0.0.0.0', function () {
