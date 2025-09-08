@@ -14,6 +14,7 @@ module.exports = async function requireUser(req, res, next) {
       const decoded = jwt.verify(raw, process.env.JWT_SECRET || 'dev-sales-secret');
       // If this is a branch token it will contain branch_id instead of userId
       if (decoded.branch_id) {
+        // Branch tokens do not have mongoPlanId, so skip check
         req.user = { 
           branch_id: decoded.branch_id, 
           shop_id: decoded.shop_id, 
@@ -22,6 +23,15 @@ module.exports = async function requireUser(req, res, next) {
           isAdmin: !!decoded.isAdmin 
         };
         return next();
+      }
+      // Enforce plan type: only allow sales- plans
+      // Deny service plan users in Sales portal
+      if (decoded.mongoPlanId && decoded.mongoPlanId.startsWith('service-')) {
+        return res.status(403).json({ message: `You only have access to Service product. Please login to the Service portal.` });
+      }
+      // Only allow sales plans, deny all others
+      if (decoded.mongoPlanId && !decoded.mongoPlanId.startsWith('sales-')) {
+        return res.status(403).json({ message: `You only have access to ${decoded.mongoPlanId.replace(/-.*/, '')} product. Please login to the correct portal.` });
       }
       req.user = { 
         userId: decoded.userId, 
@@ -44,6 +54,16 @@ module.exports = async function requireUser(req, res, next) {
     if (!accessRes.data?.hasAccess) return res.status(403).json({ message: 'No SALES access' });
     
     const mongoPlanId = accessRes.data?.mongoPlanId || null;
+
+    // Enforce plan type: only allow sales- plans
+    // Deny service plan users in Sales portal
+    if (mongoPlanId && mongoPlanId.startsWith('service-')) {
+      return res.status(403).json({ message: `You only have access to Service product. Please login to the Service portal.` });
+    }
+    // Only allow sales plans, deny all others
+    if (mongoPlanId && !mongoPlanId.startsWith('sales-')) {
+      return res.status(403).json({ message: `You only have access to ${mongoPlanId.replace(/-.*/, '')} product. Please login to the correct portal.` });
+    }
 
     let shop = await Shop.findOne({ mysql_user_id: userId });
     if (!shop) shop = await Shop.create({ mysql_user_id: userId });

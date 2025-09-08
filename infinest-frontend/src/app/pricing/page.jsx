@@ -489,7 +489,8 @@ export default function Home() {
       {/* Category Toggle */}
       <div className="w-full flex items-center justify-center mt-2">
         <div className="inline-flex rounded-lg border border-slate-700 bg-slate-800/50 p-1">
-          {(["SERVICE", "SALES", "ENTERPRISE"]).map((tab) => (
+          {(["SERVICE", "SALES"]).map((tab) => (
+            //,"ENTERPRISE"
             <button
               key={tab}
               onClick={() => setActiveCategory(tab)}

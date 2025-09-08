@@ -55,7 +55,6 @@ router.post('/billit-login', async (req, res) => {
 
     await syncUserToBillit(mysqlUserId, `Bearer ${jwtToken}`);
 
-
     // 3️⃣ Find MongoDB User
     const user = await User.findOne({ mysql_user_id: mysqlUserId }).populate('role_id');
 
@@ -75,12 +74,17 @@ router.post('/billit-login', async (req, res) => {
     }
 
     // 5️⃣ Create JWT
+    const mongoPlanId = user.role_id.mongoPlanId;
+    // Enforce: sales plan users are NOT allowed in Billit, but service and other plans are allowed
+    if (mongoPlanId && mongoPlanId.startsWith('sales-')) {
+      return res.status(403).json({ message: `You only have access to Sales product. Please login to the Sales portal.` });
+    }
+
     const payload = {
       userId: mysqlUserId, // ✅ store MySQL UUID instead of MongoDB _id
-      mongoPlanId: user.role_id.mongoPlanId,
+      mongoPlanId,
       shop_id: shop._id
     };
-
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 

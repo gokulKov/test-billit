@@ -12,6 +12,8 @@ function SecondsSales({ salesUrl, token }) {
   const [banks, setBanks] = React.useState([]);
   const [selectedBankId, setSelectedBankId] = React.useState('');
   const [selectedBankBalance, setSelectedBankBalance] = React.useState(0);
+  const [mobileNameFilter, setMobileNameFilter] = React.useState('');
+  const [modelFilter, setModelFilter] = React.useState('');
 
   async function loadEntries() {
     try {
@@ -88,6 +90,27 @@ function SecondsSales({ salesUrl, token }) {
     } finally { setLoading(false); }
   }
 
+  // Filtering logic for entries
+  const filteredEntries = React.useMemo(() => {
+    return entries.filter(r => {
+      return (
+        (!mobileNameFilter || (r.mobileName || '').toLowerCase().includes(mobileNameFilter.toLowerCase())) &&
+        (!modelFilter || (r.model || '').toLowerCase().includes(modelFilter.toLowerCase()))
+      );
+    });
+  }, [entries, mobileNameFilter, modelFilter]);
+
+  // Helper to check if a mobile is sold
+  function isSold(entry) {
+    return Array.isArray(entry.purchases) && entry.purchases.length > 0;
+  }
+
+  // Sort: unsold first, sold last
+  const sortedEntries = [
+    ...filteredEntries.filter(e => !isSold(e)),
+    ...filteredEntries.filter(e => isSold(e))
+  ];
+
   return (
     <div>
       <div className="card">
@@ -154,7 +177,7 @@ function SecondsSales({ salesUrl, token }) {
               <input name="proofNo" value={form.proofNo} onChange={onChange} />
             </div>
             <div className="col">
-              <label>Value of Product</label>
+              <label>Price</label>
               <input name="valueOfProduct" value={form.valueOfProduct} onChange={onChange} />
             </div>
               <div className="col">
@@ -218,6 +241,11 @@ function SecondsSales({ salesUrl, token }) {
 
       <div className="card mt-3 table-card">
         <div className="table-title">Saved Entries</div>
+        {/* Filter Section */}
+        <div className="filter-section" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          <input type="text" placeholder="Filter by Mobile Name" value={mobileNameFilter} onChange={e => setMobileNameFilter(e.target.value)} style={{ padding: '8px', width: '160px' }} />
+          <input type="text" placeholder="Filter by Model" value={modelFilter} onChange={e => setModelFilter(e.target.value)} style={{ padding: '8px', width: '160px' }} />
+        </div>
         <div className="table-scroll">
           <table className="modern-table">
             <thead>
@@ -227,23 +255,21 @@ function SecondsSales({ salesUrl, token }) {
                 <th>Model</th>
                 <th>IME No</th>
                 <th>Seller</th>
-                <th>Value</th>
+                <th>Price</th>
                 <th>Files</th>
                 <th>Date</th>
               </tr>
             </thead>
             <tbody>
-              {entries.map((r, i) => (
-                <tr key={r._id || i} style={{cursor:'pointer'}} onClick={() => { try { location.hash = '#seconds-sales-view-' + (r._id || i); } catch {} }}>
+              {sortedEntries.map((r, i) => (
+                <tr key={r._id || i} style={isSold(r) ? { backgroundColor: '#ffe5e5', color: 'red', cursor: 'pointer' } : { cursor: 'pointer' }} onClick={() => { try { location.hash = '#seconds-sales-view-' + (r._id || i); } catch {} }}>
                   <td><span className="serial-badge">{i + 1}</span></td>
                   <td>{r.mobileName || '-'}</td>
                   <td>{r.model || '-'}</td>
                   <td>{r.imeNo || '-'}</td>
                   <td>{r.sellerName || '-'}</td>
                   <td>{Number(r.valueOfProduct || 0).toFixed(2)}</td>
-                  <td>
-                    {( (r.images || []).length + (r.documents || []).length + (r.signatures || []).length ) || 0}
-                  </td>
+                  <td>{((r.images || []).length + (r.documents || []).length + (r.signatures || []).length) || 0}</td>
                   <td>{new Date(r.createdAt || Date.now()).toLocaleString()}</td>
                 </tr>
               ))}

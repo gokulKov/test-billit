@@ -179,13 +179,24 @@ function SecondsSalesView({ salesUrl, token, id }) {
   if (error) return <div className="card text-danger">{error}</div>;
   if (!entry) return <div className="card">Entry not found</div>;
 
+  // Helper to render file links for all file types (including PDF)
   const fileLinks = (arr) => (arr || []).map((f, i) => {
     const filename = f.filename || (f.path ? f.path.split(/[\\/]/).pop() : null);
-    // ensure salesUrl has no trailing slash
     const base = (salesUrl || '').replace(/\/+$/, '') || '';
+    // If file is PDF, ensure correct URL and open in new tab
     const url = filename ? `${base}/uploads/seconds-sales/${filename}` : (f.path || '#');
-    return (<div key={i}><a href={url} target="_blank" rel="noreferrer">{f.originalName || filename || 'file'}</a></div>);
+    const isPdf = (filename || '').toLowerCase().endsWith('.pdf');
+    return (
+      <div key={i}>
+        <a href={url} target="_blank" rel="noreferrer" type={isPdf ? 'application/pdf' : undefined}>
+          {f.originalName || filename || 'file'}
+        </a>
+      </div>
+    );
   });
+
+  // Helper to render file links for purchases
+  const purchaseFileLinks = fileLinks;
 
   return (
     <div>
@@ -241,11 +252,11 @@ function SecondsSalesView({ salesUrl, token, id }) {
             <div className="empty-state"><div className="empty-icon">🧾</div><div className="empty-title">No purchases added</div></div>
           ) : (
             (entry.purchases || []).map((p, idx) => (
-              <div key={idx} style={{border:'1px solid #eee', padding:8, marginBottom:8}}>
+              <div key={idx} style={{border:'1px solid #eee', padding:8, marginBottom:8, backgroundColor:'#ffe5e5', color:'red'}}>
                 <div><strong>{p.customerName || '-'}</strong> — {p.phone || '-'}</div>
                 <div>Price: ₹ {Number(p.price || 0).toFixed(2)}</div>
-                <div style={{marginTop:6}}>{(p.documents||[]).map((d,i)=> <div key={i}>{d.originalName || d.name || d.filename || ''}</div>)}</div>
-                <div style={{marginTop:6}}>{(p.images||[]).map((d,i)=> <div key={i}>{d.originalName || d.name || d.filename || ''}</div>)}</div>
+                <div style={{marginTop:6}}>{purchaseFileLinks(p.documents)}</div>
+                <div style={{marginTop:6}}>{purchaseFileLinks(p.images)}</div>
               </div>
             ))
           )}

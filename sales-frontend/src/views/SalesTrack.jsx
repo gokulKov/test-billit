@@ -4,6 +4,8 @@ function SalesTrack({ salesUrl, token }) {
   const [error, setError] = React.useState('');
   const [previewHtml, setPreviewHtml] = React.useState('');
   const [showPreview, setShowPreview] = React.useState(false);
+  const [dateFilter, setDateFilter] = React.useState('');
+  const [customerFilter, setCustomerFilter] = React.useState('');
 
   const load = async () => {
     try {
@@ -36,6 +38,8 @@ function SalesTrack({ salesUrl, token }) {
   async function getBranchInfo() {
     let branchName = '';
     let branchContact = '';
+    let branchGst = '';
+    let branchAddress = '';
     try {
       const res = await fetch(new URL(salesUrl + '/api/branches'), { headers: { Authorization: 'Bearer ' + token } });
       const data = await res.json();
@@ -47,17 +51,21 @@ function SalesTrack({ salesUrl, token }) {
         if (!found) found = data.branches[0];
         branchName = found?.name || '';
         branchContact = found?.phoneNumber || found?.phone || '';
+        branchGst = found?.gstNo || found?.gst || '';
+        branchAddress = found?.address || found?.branchAddress || '';
       }
     } catch (e) { /* ignore */ }
     if (!branchName || !branchContact) {
       const payload = decodeJwt();
       branchName = branchName || payload.shopName || payload.name || payload.branchName || '';
       branchContact = branchContact || payload.phone || payload.phoneNumber || payload.branchPhone || '';
+      branchGst = branchGst || payload.gstNo || payload.gst || '';
+      branchAddress = branchAddress || payload.address || payload.branchAddress || '';
     }
-    return { branchName, branchContact };
+    return { branchName, branchContact, branchGst, branchAddress };
   }
 
-  function buildReceiptHtml(sale, branchName, branchContact, stock) {
+  function buildReceiptHtml(sale, branchName, branchContact, stock, branchGst, branchAddress) {
     const items = (sale.items || []).map(i => {
       // resolve from stock when available
       const found = (stock || []).find(p => (String(p._id) && String(p._id) === String(i.productId || i._id)) || (p.productId && String(p.productId) === String(i.productId)) || (p.productNo && i.productNo && String(p.productNo) === String(i.productNo)));
@@ -83,13 +91,15 @@ function SalesTrack({ salesUrl, token }) {
     if (sgstPercent > 0) gstLines += `<div>SGST ${sgstPercent}%: <span style=\"float:right;\">${Number(sgstAmt).toFixed(2)}</span></div>`;
     if (igstPercent > 0) gstLines += `<div>IGST ${igstPercent}%: <span style=\"float:right;\">${Number(igstAmt).toFixed(2)}</span></div>`;
     if (gstLines) gstLines += `<div style=\"margin:6px 0;\"></div>`;
-    const html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>Receipt</title><style>
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title><style>
       @page { size: 72mm auto; margin: 2mm; }
       body{font-family:monospace,Arial,Helvetica,sans-serif;padding:6px;color:#111; width:72mm; box-sizing:border-box;}
       h2{margin:0 0 6px;font-size:14px}
       .shop{ text-align:center; margin-bottom:6px; }
       .shop strong{ display:block; font-size:12px }
       .shop .contact{ font-size:11px; margin-top:2px }
+      .gst{ font-size:11px; margin-top:2px }
+      .address{ font-size:11px; margin-top:2px }
       .date{ font-size:11px; margin-bottom:6px }
       table{width:100%;border-collapse:collapse;margin-top:6px;font-size:11px}
       th,td{padding:4px 2px}
@@ -99,16 +109,29 @@ function SalesTrack({ salesUrl, token }) {
       footer{margin-top:8px;text-align:right;font-weight:700;font-size:12px}
       .center{ text-align:center }
       </style></head><body>` +
-      `<div class=\"center\"><h2 style=\"margin:0\">CASH RECEIPT</h2></div><div class=\"shop\"><strong>${branchName || 'Shop'}</strong><div class=\"contact\">${branchContact || ''}</div></div>` +
-      `<div class=\"date\"><strong>Date:</strong> ${date}</div>` +
-      `<table><thead><tr><th>Item</th><th class=\"right\">Qty</th><th class=\"right\">Unit</th><th class=\"right\">Line</th></tr></thead><tbody>${itemsRows}</tbody></table>` +
-      `<footer style=\"margin-top:10px;text-align:left;font-size:12px;line-height:1.7;\">` +
-      `<div>SUB TOTAL: <span style=\"float:right;\">${Number(subTotal).toFixed(2)}</span></div>` +
+      `<div class="center"><h2 style="margin:0">CASH RECEIPT</h2></div><div class="shop"><strong>${branchName || 'Shop'}</strong><div class="contact">${branchContact || ''}</div><div class="gst">GST No: ${branchGst || '-'}</div><div class="address">${branchAddress || '-'}</div></div>` +
+      `<div class="date"><strong>Date:</strong> ${date}</div>` +
+      `<table><thead><tr><th>Item</th><th class="right">Qty</th><th class="right">Unit</th><th class="right">Line</th></tr></thead><tbody>${itemsRows}</tbody></table>` +
+      `<footer style="margin-top:10px;text-align:left;font-size:12px;line-height:1.7;">` +
+      `<div>SUB TOTAL: <span style="float:right;">${Number(subTotal).toFixed(2)}</span></div>` +
       gstLines +
-      `<div style=\"font-weight:700;font-size:14px;\">TOTAL: <span style=\"float:right;\">${total}</span></div>` +
+      `<div style="font-weight:700;font-size:14px;">TOTAL: <span style="float:right;">${total}</span></div>` +
       `</footer></body></html>`;
     return html;
   }
+
+  // Filtering logic for sales rows
+  const filteredRows = React.useMemo(() => {
+    return rows.filter(s => {
+      const saleDate = new Date(s.createdAt);
+      const filterDate = dateFilter ? new Date(dateFilter) : null;
+      const dateMatch = !filterDate || (saleDate.toDateString() === filterDate.toDateString());
+      return (
+        dateMatch &&
+        (!customerFilter || (s.customerNo || '').toLowerCase().includes(customerFilter.toLowerCase()))
+      );
+    });
+  }, [rows, dateFilter, customerFilter]);
 
   return (
     <div>
@@ -136,6 +159,11 @@ function SalesTrack({ salesUrl, token }) {
         {error ? <div className="mt-2 text-danger">{error}</div> : null}
         {loading ? <div>Loading…</div> : (
           <div className="table-scroll mt-2">
+            {/* Filter Section */}
+            <div className="filter-section" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={{ padding: '8px', width: '180px' }} />
+              <input type="text" placeholder="Filter by Customer No" value={customerFilter} onChange={e => setCustomerFilter(e.target.value)} style={{ padding: '8px', width: '180px' }} />
+            </div>
             <table className="modern-table">
               <thead>
                 <tr>
@@ -148,7 +176,7 @@ function SalesTrack({ salesUrl, token }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map(s => (
+                {filteredRows.map(s => (
                   <tr key={s._id}>
                     <td>{new Date(s.createdAt).toLocaleString()}</td>
                     <td>{s.customerNo || '-'}</td>
@@ -158,7 +186,7 @@ function SalesTrack({ salesUrl, token }) {
                     <td>
                       <button className="btn secondary" onClick={async () => {
                         try {
-                          const { branchName, branchContact } = await getBranchInfo();
+                          const { branchName, branchContact, branchGst, branchAddress } = await getBranchInfo();
                           // fetch stock to resolve product names/prices
                           let stock = [];
                           try {
@@ -166,7 +194,7 @@ function SalesTrack({ salesUrl, token }) {
                             const sdata = await sres.json();
                             if (sres.ok && Array.isArray(sdata.rows)) stock = sdata.rows;
                           } catch (e) { /* ignore */ }
-                          const html = buildReceiptHtml(s, branchName, branchContact, stock);
+                          const html = buildReceiptHtml(s, branchName, branchContact, stock, branchGst, branchAddress);
                           const w = window.open('', '_blank');
                           if (!w) { alert('Popup blocked: allow popups to print'); return; }
                           w.document.open(); w.document.write(html); w.document.close();
@@ -176,14 +204,14 @@ function SalesTrack({ salesUrl, token }) {
                       }}>Print</button>
                       <button className="btn secondary" style={{marginLeft:8}} onClick={async () => {
                         try {
-                          const { branchName, branchContact } = await getBranchInfo();
+                          const { branchName, branchContact, branchGst, branchAddress } = await getBranchInfo();
                           let stock = [];
                           try {
                             const sres = await fetch(new URL(salesUrl + '/api/branch-stock?only_branch=1'), { headers: { Authorization: 'Bearer ' + token } });
                             const sdata = await sres.json();
                             if (sres.ok && Array.isArray(sdata.rows)) stock = sdata.rows;
                           } catch (e) { /* ignore */ }
-                          const html = buildReceiptHtml(s, branchName, branchContact, stock);
+                          const html = buildReceiptHtml(s, branchName, branchContact, stock, branchGst, branchAddress);
                           setPreviewHtml(html);
                           setShowPreview(true);
                         } catch (e) { console.error(e); alert('Failed to prepare preview'); }
@@ -236,7 +264,7 @@ function SalesTrack({ salesUrl, token }) {
                     </td>
                   </tr>
                 ))}
-                {rows.length === 0 ? (
+                {filteredRows.length === 0 ? (
                   <tr><td colSpan={6}>No sales found</td></tr>
                 ) : null}
               </tbody>

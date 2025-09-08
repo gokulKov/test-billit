@@ -1,5 +1,7 @@
 function BranchNewExpense({ salesUrl, token }) {
-  const [form, setForm] = React.useState({ title: '', amount: '', date: '' });
+  const [form, setForm] = React.useState({ title: '', amount: '', date: '', bank_id: '' });
+  const [banks, setBanks] = React.useState([]);
+  const [selectedBank, setSelectedBank] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
   const [rows, setRows] = React.useState([]);
@@ -34,6 +36,31 @@ function BranchNewExpense({ salesUrl, token }) {
   };
 
   React.useEffect(() => { load(); }, [token]);
+
+  // Load banks for selection
+  React.useEffect(() => {
+    const fetchBanks = async () => {
+      try {
+        const url = new URL(salesUrl + '/api/banks');
+        const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load banks');
+        setBanks(Array.isArray(data.banks) ? data.banks : []);
+      } catch (e) {
+        setBanks([]);
+      }
+    };
+    fetchBanks();
+  }, [token]);
+
+  React.useEffect(() => {
+    if (!form.bank_id) {
+      setSelectedBank(null);
+      return;
+    }
+    const bank = banks.find(b => b._id === form.bank_id);
+    setSelectedBank(bank || null);
+  }, [form.bank_id, banks]);
 
   // load sales for revenue computation
   React.useEffect(() => {
@@ -112,16 +139,19 @@ function BranchNewExpense({ salesUrl, token }) {
     const amt = Number(form.amount);
     if (!form.title || String(form.title).trim() === '') return setError('Enter an expense title');
     if (!amt || amt <= 0) return setError('Enter a valid amount');
+    if (!form.bank_id) return setError('Select a bank');
+    if (!selectedBank) return setError('Invalid bank selected');
+    if (amt > Number(selectedBank.accountBalance)) return setError('Amount exceeds selected bank balance');
     setLoading(true);
     try {
       const res = await fetch(salesUrl + '/api/branch-expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ title: form.title, amount: amt, date: form.date || new Date().toISOString() })
+        body: JSON.stringify({ title: form.title, amount: amt, date: form.date || new Date().toISOString(), bank_id: form.bank_id })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Create failed');
-      setForm({ title: '', amount: '', date: '' });
+      setForm({ title: '', amount: '', date: '', bank_id: '' });
       await load();
       try { window.dispatchEvent(new Event('branch-expense-created')); } catch (__) {}
     } catch (e) { setError(e.message); } finally { setLoading(false); }
@@ -150,6 +180,20 @@ function BranchNewExpense({ salesUrl, token }) {
                 <div style={{ marginTop: 6 }}>
                   <small style={{ color: '#999' }}></small>
                 </div>
+              </div>
+              <div className="col">
+                <label>Bank</label>
+                <select name="bank_id" value={form.bank_id} onChange={onChange}>
+                  <option value="">Select bank</option>
+                  {banks.map(b => (
+                    <option key={b._id} value={b._id}>{b.bankName} ({b.accountNumber}) - ₹{Number(b.accountBalance).toLocaleString()}</option>
+                  ))}
+                </select>
+                {selectedBank ? (
+                  <div style={{ marginTop: 6 }}>
+                    <small style={{ color: '#999' }}>Balance: ₹{Number(selectedBank.accountBalance).toLocaleString()}</small>
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="row mt-3">
