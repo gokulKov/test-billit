@@ -291,12 +291,46 @@ const adminSaleSchema = new mongoose.Schema({
   createdBy: { type: String, default: '' }
 }, { timestamps: true });
 
+// ==============================
+// 📱 Mobile Brand Schema
+// ==============================
+const mobileBrandSchema = new mongoose.Schema({
+  shop_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Shop', index: true },
+  brand_name: { type: String, required: true, trim: true },
+  is_custom: { type: Boolean, default: false }, // true if added by user, false if seeded
+  is_active: { type: Boolean, default: true },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
+});
+
+// Compound index to ensure unique brand per shop
+mobileBrandSchema.index({ shop_id: 1, brand_name: 1 }, { unique: true });
+
+// ==============================
+// 🔧 Mobile Issue Schema
+// ==============================
+const mobileIssueSchema = new mongoose.Schema({
+  shop_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Shop', index: true },
+  issue_name: { type: String, required: true, trim: true },
+  issue_category: { type: String, default: 'General' }, // e.g., Hardware, Software, Screen, Battery, etc.
+  estimated_repair_time: { type: Number, default: 1 }, // in days
+  is_custom: { type: Boolean, default: false }, // true if added by user, false if seeded
+  is_active: { type: Boolean, default: true },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
+});
+
+// Compound index to ensure unique issue per shop
+mobileIssueSchema.index({ shop_id: 1, issue_name: 1 }, { unique: true });
+
 const AdminSale = mongoose.model('AdminSale', adminSaleSchema);
 const Expense = mongoose.model("Expense", expenseSchema);
 const DailySummary = mongoose.model("DailySummary", dailySummarySchema);
-
+const MobileBrand = mongoose.model("MobileBrand", mobileBrandSchema);
+const MobileIssue = mongoose.model("MobileIssue", mobileIssueSchema);
 
 module.exports = {
   Role, User, Manager, Branch, Shop, Dealer, Customer, Notification, Mobile, Technician,
-  PlanCategory, Plan, Feature, DailySummary, Expense, ProductHistory, Product
+  PlanCategory, Plan, Feature, DailySummary, Expense, ProductHistory, Product,
+  MobileBrand, MobileIssue, AdminSale
 };

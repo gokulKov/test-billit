@@ -104,7 +104,7 @@ export function AppSidebar({ sidebarOpen, setSidebarOpen, role }) {
     { title: "All Records", url: "/allrecord", icon: Database },
     { title: "Mobile Registry", url: "/mobilename", icon: Smartphone },
     { title: "Balance Summary", url: "/balanceamount", icon: Wallet },
-    // { title: "Dashboard", url: "/dashboard", icon: BarChart3, featureKey: "dashboard_enabled" },
+    { title: "Analytics Dashboard", url: "/analytics", icon: BarChart3, featureKey: "analytics_dashboard_enabled" },
     ...(role === "admin" ? [{ title: "Admin Dashboard", url: "/admin-dashboard", icon: Shield }] : []),
     { title: "Manage Stock", url: "/product", icon: Package, featureKey: "product_inventory_enabled" },
     { title: "Expenses", url: "/todayexpenses", icon: Receipt, featureKey: "expense_tracker_enabled" },

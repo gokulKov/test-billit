@@ -221,16 +221,18 @@ const {viewPublicReceiptController} = require("../controllers/api/viewReceiptCon
 // Add this new route WITHOUT authentication middleware
 router.get("/receipt/public/:id", viewPublicReceiptController);
 
+// ======================================
+// 📱 Mobile Brands & Issues Routes
+// ======================================
+const { getMobileBrands, addMobileBrand, getMobileIssues, addMobileIssue } = require("../controllers/billitController");
 
+// Mobile Brands
+router.get("/mobile-brands/:shopId", authenticateToken, getMobileBrands);
+router.post("/mobile-brands", authenticateToken, addMobileBrand);
 
-
-
-
-
-
-
-
-
+// Mobile Issues  
+router.get("/mobile-issues/:shopId", authenticateToken, getMobileIssues);
+router.post("/mobile-issues", authenticateToken, addMobileIssue);
 
 module.exports = router;
 

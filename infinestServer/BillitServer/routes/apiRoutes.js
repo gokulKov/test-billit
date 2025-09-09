@@ -28,6 +28,10 @@ const { getDashboardRecords, getDashboardRecordsPublic } = require("../controlle
 router.post("/dashboard/records", authenticateToken, getDashboardRecords);
 
 router.get("/dashboard/records/get/:shop_id", getDashboardRecordsPublic);
+
+const { getAnalyticsData } = require("../controllers/api/analyticsController");
+router.post("/dashboard/analytics", authenticateToken, getAnalyticsData);
+router.get("/analytics", authenticateToken, getAnalyticsData);
 router.post("/backup/download", authenticateToken, downloadFullBackup);
 router.post("/backup/view", upload.single("file"), viewBackup);
 

@@ -123,6 +123,12 @@ export const FEATURE_CONFIG = {
     description: 'Get detailed insights about your business with charts, analytics, and performance metrics.',
     requiredPlans: 'Gold/Premium'
   },
+  analytics_dashboard: {
+    key: 'analytics_dashboard_enabled',
+    name: 'Analytics Dashboard',
+    description: 'Comprehensive business analytics with interactive charts, financial insights, customer growth tracking, and performance metrics.',
+    requiredPlans: 'Premium'
+  },
   whatsapp_billing: {
     key: 'allow_whatsapp_billing',
     name: 'WhatsApp Billing',

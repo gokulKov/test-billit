@@ -1,4 +1,4 @@
-const { Shop, Customer, Dealer, Mobile, ProductHistory ,Product, Expense , DailySummary  } = require("../models/mongoModels");
+const { Shop, Customer, Dealer, Mobile, ProductHistory, Product, Expense, DailySummary, MobileBrand, MobileIssue } = require("../models/mongoModels");
 
 // ======================================
 // ✅ Create Customer Controller
@@ -1088,11 +1088,153 @@ const getDailySummary = async (req, res) => {
   }
 };
 
+// ======================================
+// 📱 Mobile Brands Management
+// ======================================
+
+// Get all mobile brands for a shop
+const getMobileBrands = async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    if (!shopId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ error: "Invalid shop ID format." });
+    }
+
+    const brands = await MobileBrand.find({ 
+      $or: [{ shop_id: shopId }, { shop_id: null }], // Get shop-specific and global brands
+      is_active: true 
+    }).sort({ brand_name: 1 });
+
+    res.status(200).json({ brands });
+  } catch (error) {
+    console.error("Error fetching mobile brands:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Add custom mobile brand
+const addMobileBrand = async (req, res) => {
+  try {
+    const { shopId, brandName } = req.body;
+
+    if (!shopId || !brandName) {
+      return res.status(400).json({ error: "Shop ID and brand name are required." });
+    }
+
+    if (!shopId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ error: "Invalid shop ID format." });
+    }
+
+    // Check if brand already exists for this shop
+    const existingBrand = await MobileBrand.findOne({
+      shop_id: shopId,
+      brand_name: { $regex: new RegExp(`^${brandName}$`, 'i') }
+    });
+
+    if (existingBrand) {
+      return res.status(400).json({ error: "Brand already exists for this shop." });
+    }
+
+    const newBrand = await MobileBrand.create({
+      shop_id: shopId,
+      brand_name: brandName.trim(),
+      is_custom: true,
+      is_active: true
+    });
+
+    res.status(201).json({ 
+      message: "Mobile brand added successfully", 
+      brand: newBrand 
+    });
+  } catch (error) {
+    console.error("Error adding mobile brand:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ======================================
+// 🔧 Mobile Issues Management  
+// ======================================
+
+// Get all mobile issues for a shop
+const getMobileIssues = async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    if (!shopId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ error: "Invalid shop ID format." });
+    }
+
+    const issues = await MobileIssue.find({ 
+      $or: [{ shop_id: shopId }, { shop_id: null }], // Get shop-specific and global issues
+      is_active: true 
+    }).sort({ issue_category: 1, issue_name: 1 });
+
+    // Group issues by category
+    const groupedIssues = issues.reduce((acc, issue) => {
+      const category = issue.issue_category || 'General';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(issue);
+      return acc;
+    }, {});
+
+    res.status(200).json({ issues, groupedIssues });
+  } catch (error) {
+    console.error("Error fetching mobile issues:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Add custom mobile issue
+const addMobileIssue = async (req, res) => {
+  try {
+    const { shopId, issueName, issueCategory, estimatedRepairTime } = req.body;
+
+    if (!shopId || !issueName) {
+      return res.status(400).json({ error: "Shop ID and issue name are required." });
+    }
+
+    if (!shopId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ error: "Invalid shop ID format." });
+    }
+
+    // Check if issue already exists for this shop
+    const existingIssue = await MobileIssue.findOne({
+      shop_id: shopId,
+      issue_name: { $regex: new RegExp(`^${issueName}$`, 'i') }
+    });
+
+    if (existingIssue) {
+      return res.status(400).json({ error: "Issue already exists for this shop." });
+    }
+
+    const newIssue = await MobileIssue.create({
+      shop_id: shopId,
+      issue_name: issueName.trim(),
+      issue_category: issueCategory || 'General',
+      estimated_repair_time: estimatedRepairTime || 1,
+      is_custom: true,
+      is_active: true
+    });
+
+    res.status(201).json({ 
+      message: "Mobile issue added successfully", 
+      issue: newIssue 
+    });
+  } catch (error) {
+    console.error("Error adding mobile issue:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   createCustomer, getCustomersWithBalance, updateBalanceAmount, clearBalanceAmount,addProduct,
   listProducts, getProductHistory,getFilteredProductHistory, sellProduct, getProductRevenueToday ,
 addExpense, getTodayExpenses, updateDailySummary, getAllDailySummaries, getDailySummary,
   createDealer, getDealersWithBalance,updatePaidAmount,toggleDeliveryStatus,toggleMobileStatus,
-  getAllDealers,getRecords,getTodayRecords,getTodaySales,updateBalance,fetchAllData , deleteMobileOrClient 
-
+  getAllDealers,getRecords,getTodayRecords,getTodaySales,updateBalance,fetchAllData , deleteMobileOrClient,
+  getMobileBrands, addMobileBrand, getMobileIssues, addMobileIssue
 };
