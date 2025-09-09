@@ -193,21 +193,15 @@ app.post('/auth/login', async (req, res) => {
       return res.status(403).json({ message: 'No active SALES subscription for this user' });
     }
     
-    // Get the original plan from the access check
-    let mongoPlanId = accessRes.data?.mongoPlanId || null;
-    console.log('🔍 Original plan from auth server:', mongoPlanId);
+    // Get the plan from the access check
+    const mongoPlanId = accessRes.data?.mongoPlanId || null;
     
-    // Convert service plans to sales plans for Sales app context
-    if (mongoPlanId) {
-      if (mongoPlanId.startsWith('service-')) {
-        // Convert service-basic -> sales-basic, service-premium -> sales-premium, etc.
-        const planLevel = mongoPlanId.replace('service-', '');
-        mongoPlanId = `sales-${planLevel}`;
-        console.log(`🔄 Converted service plan to sales plan: ${accessRes.data.mongoPlanId} -> ${mongoPlanId}`);
-      }
+    // Ensure user has a valid sales plan (not service plan)
+    if (!mongoPlanId || !mongoPlanId.startsWith('sales-')) {
+      return res.status(403).json({ 
+        message: 'Sales app access requires a sales plan subscription. Please subscribe to a sales plan to access this application.' 
+      });
     }
-    
-    console.log('✅ Final sales plan ID:', mongoPlanId);
 
     // Find or create a Shop by mysql_user_id
     let shop = await Shop.findOne({ mysql_user_id: userId });
