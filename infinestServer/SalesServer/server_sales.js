@@ -37,9 +37,18 @@ app.use('/uploads', express.static(uploadsDir));
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
-  process.env.AUTH_SERVER_URL || 'http://localhost:7000',
-  'http://localhost:3020',
-  'http://127.0.0.1:3020'
+    process.env.AUTH_SERVER_URL || 'http://localhost:7000',
+    'http://localhost:3020',
+    'http://127.0.0.1:3020',
+    // Production domains
+    'https://sales.infinestech.com',    // ✅ Production sales frontend
+    'http://sales.infinestech.com',     // ✅ Fallback for sales frontend
+    'https://auth.infinestech.com',     // ✅ Production auth server
+    'http://auth.infinestech.com',      // ✅ Fallback for auth server
+    // Local development
+    'http://localhost:7000',            // ✅ Local auth server
+    'http://127.0.0.1:7000',
+    'http://[::1]:7000'                 // ✅ IPv6 localhost
   ],
   credentials: true,
 }));

@@ -17,6 +17,9 @@
     <!-- Babel Standalone to compile JSX in the browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
+  <!-- Load environment configuration first -->
+  <script src="/src/config/env.js"></script>
+  
   <!-- Load context and utilities first -->
   <script type="text/babel" data-presets="react" src="/src/context/SalesFeatureContext.jsx"></script>
   <script type="text/babel" data-presets="react" src="/src/utils/salesFeatureAccess.js"></script>

@@ -64,7 +64,13 @@ app.use(cors({
      'https://localhost:3000',
      'http://127.0.0.1:3000',
      'https://127.0.0.1:3000',
-     'http://89.116.121.212:3000', 
+     // Production Sales Domain
+     'https://sales.infinestech.com',   // ✅ Production sales frontend
+     'http://sales.infinestech.com',    // ✅ Fallback for sales frontend
+     // Sales Server Internal Communication
+     'http://localhost:9000',           // ✅ Sales server local
+     'http://127.0.0.1:9000',
+     'http://[::1]:9000',              // ✅ IPv6 localhost for sales server
      'http://localhost:8000',
      'http://127.0.0.1:8000',
      'http://[::1]:8000',          // ✅ Add IPv6 localhost for billit server

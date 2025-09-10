@@ -425,7 +425,8 @@ function ProductSales({ salesUrl, token }) {
 										}).join('\n\n');
 										const message = `Shop: ${shopName}\nContact: ${shopContact}\n\nItems:\n${itemsText}\n\nTotal: ${Number(sale.totalAmount || totalAmount || 0).toFixed(2)}`;
 										console.log('WhatsApp send to (from sale):', cust);
-										window.open(`https://web.whatsapp.com/send?phone=${cust}&text=${encodeURIComponent(message)}`, '_blank');
+										const whatsappUrl = window.ENV_CONFIG?.WHATSAPP_WEB_URL || 'https://web.whatsapp.com';
+										window.open(`${whatsappUrl}/send?phone=${cust}&text=${encodeURIComponent(message)}`, '_blank');
 									})();
 								}}>WhatsApp</button>
 							</div>

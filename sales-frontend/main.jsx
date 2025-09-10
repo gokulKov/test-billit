@@ -15,7 +15,7 @@ function App() {
   // Device detection for responsive layout
   const { isMobile } = useDeviceDetection();
 
-  const SALES_URL = 'http://127.0.0.1:9000';
+  const SALES_URL = window.ENV_CONFIG?.SALES_API_URL || 'http://127.0.0.1:9000';
 
   const decodeJwt = (tk) => {
     try {

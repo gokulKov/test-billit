@@ -4,7 +4,7 @@ function SalesFeatureProvider({ children }) {
   const [loading, setLoading] = React.useState(true);
   const [userPlan, setUserPlan] = React.useState('');
 
-  const SALES_URL = window.SALES_URL || 'http://127.0.0.1:9000';
+  const SALES_URL = window.ENV_CONFIG?.SALES_API_URL || 'http://127.0.0.1:9000';
 
   const fetchFeatures = async () => {
     try {

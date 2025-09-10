@@ -1,7 +1,7 @@
 
 
 const React = window.React;
-const SALES_API_URL = window.SALES_URL || 'http://127.0.0.1:9000/api/sales';
+const SALES_API_URL = (window.ENV_CONFIG?.SALES_API_URL || 'http://127.0.0.1:9000') + '/api/sales';
 
 
 

@@ -2,7 +2,7 @@ function GstCalculatorView() {
   const [transactions, setTransactions] = React.useState([]);
   
   React.useEffect(() => {
-    const salesUrl = window.SALES_URL || 'http://127.0.0.1:9000';
+    const salesUrl = window.ENV_CONFIG?.SALES_API_URL || 'http://127.0.0.1:9000';
     const token = localStorage.getItem('sales_token') || '';
     fetch(salesUrl + '/api/in-stock?gstOnly=1', {
       headers: {

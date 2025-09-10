@@ -254,11 +254,13 @@ function SalesTrack({ salesUrl, token }) {
                           if (phone.length === 10) phone = '91' + phone; // default to India if 10 digits
                           console.log('WhatsApp send to (sales track):', phone);
                           console.log('Prepared WhatsApp message:', message);
-                          window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${text}`, '_blank');
+                          const whatsappUrl = window.ENV_CONFIG?.WHATSAPP_WEB_URL || 'https://web.whatsapp.com';
+                          window.open(`${whatsappUrl}/send?phone=${phone}&text=${text}`, '_blank');
                         } else {
                           // fallback: open shared message without target phone
                           console.log('Prepared WhatsApp message (no customer phone):', message);
-                          window.open(`https://web.whatsapp.com/send?text=${text}`, '_blank');
+                          const whatsappUrl = window.ENV_CONFIG?.WHATSAPP_WEB_URL || 'https://web.whatsapp.com';
+                          window.open(`${whatsappUrl}/send?text=${text}`, '_blank');
                         }
                       }}>WhatsApp</button>
                     </td>

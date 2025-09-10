@@ -212,7 +212,8 @@ function ProductSell({ salesUrl, token }) {
       if (digits.length === 10) digits = '91' + digits;
       const cust = digits;
       const message = `Shop: ${shopName}\nContact: ${shopContact}\n\nItems:\n${itemsText}\n\nTotal: ${Number(sale.totalAmount || totalAmount || 0).toFixed(2)}`;
-      window.open(`https://web.whatsapp.com/send?phone=${cust}&text=${encodeURIComponent(message)}`, '_blank');
+      const whatsappUrl = window.ENV_CONFIG?.WHATSAPP_WEB_URL || 'https://web.whatsapp.com';
+      window.open(`${whatsappUrl}/send?phone=${cust}&text=${encodeURIComponent(message)}`, '_blank');
     })();
   }
 

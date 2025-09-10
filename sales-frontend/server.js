@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -18,6 +20,27 @@ const mime = {
 
 const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent(new URL(req.url, `http://localhost:${PORT}`).pathname);
+  
+  // Handle dynamic environment config
+  if (urlPath === '/src/config/env.js') {
+    const configContent = `// Environment configuration for sales frontend
+// This file provides environment variables globally
+
+window.ENV_CONFIG = {
+  SALES_API_URL: '${process.env.VITE_SALES_API_URL || 'http://127.0.0.1:9000'}',
+  AUTH_API_URL: '${process.env.VITE_AUTH_API_URL || 'http://127.0.0.1:7000'}',
+  WHATSAPP_WEB_URL: '${process.env.VITE_WHATSAPP_WEB_URL || 'https://web.whatsapp.com'}'
+};
+
+// For backward compatibility, also set SALES_URL
+window.SALES_URL = window.ENV_CONFIG.SALES_API_URL;
+
+console.log('🔧 Environment config loaded:', window.ENV_CONFIG);`;
+
+    res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+    return res.end(configContent);
+  }
+  
   let filePath = path.join(root, urlPath === '/' ? 'index.html' : urlPath);
 
   // Prevent path traversal

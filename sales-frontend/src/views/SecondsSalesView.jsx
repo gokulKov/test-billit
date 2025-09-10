@@ -145,8 +145,9 @@ function SecondsSalesView({ salesUrl, token, id }) {
     const cust = normalizePhone(p.phone || '');
     try {
       // Open WhatsApp web with prefilled message to customer number
-      if (cust) window.open(`https://web.whatsapp.com/send?phone=${cust}&text=${encodeURIComponent(message)}`, '_blank');
-      else window.open('https://web.whatsapp.com/', '_blank');
+      const whatsappUrl = window.ENV_CONFIG?.WHATSAPP_WEB_URL || 'https://web.whatsapp.com';
+      if (cust) window.open(`${whatsappUrl}/send?phone=${cust}&text=${encodeURIComponent(message)}`, '_blank');
+      else window.open(whatsappUrl + '/', '_blank');
     } catch (e) { console.error('open whatsapp', e); }
   }
 
