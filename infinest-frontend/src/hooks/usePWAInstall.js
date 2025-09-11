@@ -8,6 +8,9 @@ export const usePWAInstall = () => {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
+    // Guard for SSR
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
+
     // Check if app is already installed
     const checkInstalled = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||

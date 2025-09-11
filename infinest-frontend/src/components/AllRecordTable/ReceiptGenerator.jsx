@@ -1,8 +1,6 @@
 'use client';
 import React, { useRef, useState, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { IoMdPrint } from "react-icons/io";
 import { MdPreview } from "react-icons/md";
 import { FaDownload, FaWhatsapp } from "react-icons/fa";
@@ -100,138 +98,27 @@ const PrintableReceipt = React.forwardRef(({ clientData, shopPhoneNumber, shopAd
 
 PrintableReceipt.displayName = "PrintableReceipt";
 
-// Enhanced PDF Generation with proper spacing
-const generateEnhancedPDF = (clientData, shopPhoneNumber, shopAddress, shopEmail, shopName) => {
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: [80, 250], // Increased height significantly to prevent overlapping
-  });
+// PDF generation temporarily disabled while debugging build issue (jspdf removed)
+// let _jspdfPromise = null;
+// const loadJsPdf = async () => {
+//   if (!_jspdfPromise) {
+//     _jspdfPromise = Promise.all([
+//       import("jspdf").then(m => m.default || m),
+//       import("jspdf-autotable").then(m => m.default || m)
+//     ]).then(([JSPDF]) => JSPDF);
+//   }
+//   return _jspdfPromise;
+// };
 
-  let yPosition = 10;
-
-  // Header
-  doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
-  const displayName = shopName || clientData.owner_name || "INFINFEST MOBILE SERVICE";
-  doc.text(displayName, 40, yPosition, { align: 'center' });
-  yPosition += 8;
-
-  doc.setFontSize(8);
-  doc.setFont(undefined, 'normal');
-  
-  doc.text(`Phone: ${shopPhoneNumber || "9876543210"}`, 40, yPosition, { align: 'center' });
-  yPosition += 5;
-  
-  if (shopEmail && shopEmail.trim() !== "" && shopEmail !== "N/A") {
-    doc.text(`Email: ${shopEmail}`, 40, yPosition, { align: 'center' });
-    yPosition += 5;
-  }
-  
-  // Only add address if it exists and is not empty
-  if (shopAddress && shopAddress.trim() !== "" && shopAddress !== "N/A") {
-    doc.text(`Address: ${shopAddress}`, 40, yPosition, { align: 'center' });
-    yPosition += 5;
-  }
-  
-  yPosition += 4;
-
-  // Line separator
-  doc.line(5, yPosition, 75, yPosition);
-  yPosition += 8;
-
-  // Customer Details
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'bold');
-  doc.text("CUSTOMER DETAILS", 5, yPosition);
-  yPosition += 6;
-
-  doc.setFont(undefined, 'normal');
-  doc.text(`Customer: ${clientData.client_name}`, 5, yPosition);
-  yPosition += 5;
-  doc.text(`Mobile: ${clientData.mobile_number}`, 5, yPosition);
-  yPosition += 5;
-  
-  if (clientData.bill_no) {
-    doc.text(`Bill No: ${clientData.bill_no}`, 5, yPosition);
-    yPosition += 5;
-  }
-  
-  doc.text(`Date: ${new Date().toLocaleDateString("en-IN")}`, 5, yPosition);
-  yPosition += 10;
-
-  // Services Header
-  doc.setFont(undefined, 'bold');
-  doc.text("DEVICES FOR SERVICE", 5, yPosition);
-  yPosition += 6;
-
-  // Services Table
-  const mobileRows = clientData.MobileName.map((mobile, index) => [
-    String(index + 1),
-    mobile.mobile_name,
-  mobile.issue || "General Service",
-  (typeof mobile.paid_amount !== 'undefined' && mobile.paid_amount !== null) ? String(mobile.paid_amount) : "0",
-  ]);
-
-  autoTable(doc, {
-    head: [["#", "Device", "Issue", "Paid"]],
-    body: mobileRows,
-    startY: yPosition,
-    theme: "grid",
-    styles: { 
-      fontSize: 7, 
-      cellPadding: 2,
-      lineColor: [0, 0, 0],
-      lineWidth: 0.1,
-    },
-    headStyles: { 
-      fillColor: [240, 240, 240],
-      textColor: [0, 0, 0],
-      fontStyle: 'bold'
-    },
-    margin: { left: 5, right: 5 },
-    columnStyles: {
-      0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 25 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: 15, halign: 'right' }
-    }
-  });
- 
-  // Footer start a bit lower
-  const finalY = Math.max(doc.previousAutoTable?.finalY || 0, yPosition);
-  yPosition = finalY + 10;
-
-
-   // Total paid amount: place after the table and right-align near the page edge
-  const totalPaid = clientData.MobileName.reduce((sum, m) => sum + (Number(m.paid_amount) || 0), 0);
-  const tableEndY = doc.previousAutoTable?.finalY || yPosition;
-  // move a bit below the table
-  yPosition = tableEndY + 8;
-  doc.setFontSize(8);
-  doc.setFont(undefined, 'bold');
-  // right-align total to the printable area (right margin ~75)
-  doc.text(`Total Paid: ${totalPaid}`, 75, yPosition, { align: 'right' });
-  yPosition += 10;
-
-  // Line separator
-  doc.line(5, yPosition, 75, yPosition);
-  yPosition += 8;
-
-  doc.setFontSize(8);
-  doc.setFont(undefined, 'bold');
-  doc.text("Thank you for choosing our service!", 40, yPosition, { align: 'center' });
-  yPosition += 6;
-
-  doc.setFont(undefined, 'normal');
-  doc.text(`Support: ${shopPhoneNumber || "9876543210"}`, 40, yPosition, { align: 'center' });
-  yPosition += 6;
-
- 
-  doc.setFontSize(6);
-  doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 40, yPosition, { align: 'center' });
-
-  return doc;
+const generateEnhancedPDF = async (clientData, shopPhoneNumber, shopAddress, shopEmail, shopName) => {
+  // Stub: return minimal object to prevent runtime errors
+  return {
+    output: () => ({
+      // mimic jsPDF output method interface used later ("blob")
+      blob: () => new Blob([], { type: 'application/pdf' })
+    }),
+    save: () => console.warn('PDF save disabled during build debugging'),
+  };
 };
 
 // Main Enhanced ReceiptGenerator Component
@@ -352,19 +239,19 @@ const ReceiptGenerator = ({ clientData, shopPhoneNumber, closeModal, shopAddress
   };
 
   const handlePreview = () => {
-    const finalAddress = profileAddress || shopAddress;
-    const doc = generateEnhancedPDF(clientData, shopPhoneNumber, finalAddress, shopEmail, shopName);
-    const blob = doc.output("blob");
-    const pdfURL = URL.createObjectURL(blob);
-    setPreviewURL(pdfURL);
-    setShowPreviewModal(true);
+    (async () => {
+      const finalAddress = profileAddress || shopAddress;
+  console.warn('Preview disabled (jspdf removed temporarily).');
+  setPreviewURL(null);
+  setShowPreviewModal(false);
+    })();
   };
 
   const handleDownloadPDF = () => {
-    const finalAddress = profileAddress || shopAddress;
-    const doc = generateEnhancedPDF(clientData, shopPhoneNumber, finalAddress, shopEmail, shopName);
-    const fileName = `Receipt-${clientData.bill_no || clientData.client_name || 'Service'}.pdf`;
-    doc.save(fileName);
+    (async () => {
+      const finalAddress = profileAddress || shopAddress;
+  console.warn('Download disabled (jspdf removed temporarily).');
+    })();
   };
 
   const handleWhatsApp = () => {
