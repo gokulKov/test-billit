@@ -1,15 +1,9 @@
 "use client"
 
-import { RefreshCw } from "lucide-react"
-
-export default function CustomerForm({ formData, setFormData, disabled, onBillNumberChange, onRegenerateBillNumber }) {
+export default function CustomerForm({ formData, setFormData, disabled }) {
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    if (name === 'billNo') {
-      onBillNumberChange(value)
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }))
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   return (
@@ -59,27 +53,15 @@ export default function CustomerForm({ formData, setFormData, disabled, onBillNu
       {/* Second Row */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">Bill Number</label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            name="billNo"
-            placeholder="e.g., CUST-0001"
-            value={formData.billNo || ""}
-            onChange={handleInputChange}
-            disabled={disabled}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <button
-            type="button"
-            onClick={onRegenerateBillNumber}
-            disabled={disabled}
-            className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Generate new sequential bill number"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
-        </div>
-        <p className="text-xs text-gray-500 mt-1">Auto-generated, but editable</p>
+        <input
+          type="text"
+          name="billNo"
+          placeholder="Auto-generated"
+          value={formData.billNo || ""}
+          readOnly
+          disabled={disabled}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-gray-50"
+        />
       </div>
 
       <div>

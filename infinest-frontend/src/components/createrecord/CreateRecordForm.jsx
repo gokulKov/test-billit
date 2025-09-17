@@ -18,125 +18,23 @@ export default function CreateRecordForm({ shopId, isLimitReached, setIsLimitRea
   const [dealers, setDealers] = useState([])
   const [isTableVisible, setIsTableVisible] = useState(false)
   const [recordTableKey, setRecordTableKey] = useState(0)
-  const [billNumberTimeout, setBillNumberTimeout] = useState(null)
 
 
   useEffect(() => {
     if (customerType === "Dealer" && shopId) fetchDealers()
     // Auto-generate bill number when customer type changes or component mounts
-    generateSequentialBillNumber()
+    generateBillNumber()
   }, [customerType, shopId])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (billNumberTimeout) {
-        clearTimeout(billNumberTimeout)
-      }
-    }
-  }, [billNumberTimeout])
-
-  const generateSequentialBillNumber = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        logError("No token found for generating bill number", new Error("Missing authentication token"))
-        return
-      }
-
-      const prefix = customerType === "Customer" ? "CUST" : "DEAL"
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL_BILLIT}/api/next-bill-number`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-          prefix: prefix 
-        }),
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        logError("Failed to generate bill number", new Error(data.error || "Unknown error"))
-        // Fallback to sequential numbering starting from 0001 if API doesn't exist
-        const fallbackNumber = `${prefix}-0001`
-        setFormData(prev => ({
-          ...prev,
-          billNo: fallbackNumber
-        }))
-        logSystem("Using fallback bill number generation", shopId)
-        return
-      }
-
-      setFormData(prev => ({
-        ...prev,
-        billNo: data.billNumber
-      }))
-    } catch (error) {
-      logError("Error generating bill number", error)
-      // Fallback to sequential numbering starting from 0001
-      const prefix = customerType === "Customer" ? "CUST" : "DEAL"
-      const fallbackNumber = `${prefix}-0001`
-      setFormData(prev => ({
-        ...prev,
-        billNo: fallbackNumber
-      }))
-      logSystem("Using fallback bill number generation due to error", shopId)
-    }
-  }
-
-  const checkBillNumberExists = async (billNumber) => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) return false
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL_BILLIT}/api/check-bill-number`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-          billNumber: billNumber 
-        }),
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        logError("Failed to check bill number", new Error(data.error || "Unknown error"))
-        return false // If API fails, allow the bill number
-      }
-
-      return data.exists
-    } catch (error) {
-      logError("Error checking bill number", error)
-      return false // If error, allow the bill number
-    }
-  }
-
-  const handleBillNumberChange = async (newBillNumber) => {
+  const generateBillNumber = () => {
+    const random = Math.floor(Math.random() * 90000) + 10000 // Generates 5-digit number (10000-99999)
+    const prefix = customerType === "Customer" ? "CUST" : "DEAL"
+    const billNo = `${prefix}-${random}`
+    
     setFormData(prev => ({
       ...prev,
-      billNo: newBillNumber
+      billNo: billNo
     }))
-
-    // Clear existing timeout
-    if (billNumberTimeout) {
-      clearTimeout(billNumberTimeout)
-    }
-
-    // Set new timeout for validation (debounce)
-    const timeoutId = setTimeout(async () => {
-      if (newBillNumber.trim().length > 0) {
-        const exists = await checkBillNumberExists(newBillNumber.trim())
-        if (exists) {
-          logAndNotify("This bill number already exists. Please use a different number.", "warning", shopId)
-        }
-      }
-    }, 1000) // Wait 1 second after user stops typing
-
-    setBillNumberTimeout(timeoutId)
   }
 
 
@@ -219,10 +117,8 @@ export default function CreateRecordForm({ shopId, isLimitReached, setIsLimitRea
     }
 
     if (!formData.noOfMobile || formData.noOfMobile < 1 || formData.noOfMobile > 15) return false
-    // Validate bill number format and presence
-  if (!formData.billNo || formData.billNo.trim().length === 0) return false
-  // Technician is optional. If provided, enforce a minimum length of 2 chars.
-  if (formData.technician && formData.technician.trim().length > 0 && formData.technician.trim().length < 2) return false
+    // Bill number is auto-generated, no validation needed
+    if (!formData.technician || formData.technician.trim().length < 2) return false
 
     return true
   }
@@ -239,14 +135,6 @@ export default function CreateRecordForm({ shopId, isLimitReached, setIsLimitRea
     setIsTableVisible(true)
   }
   const handleSubmit = async () => {
-    // Validate bill number uniqueness before submission
-    if (formData.billNo && formData.billNo.trim().length > 0) {
-      const exists = await checkBillNumberExists(formData.billNo.trim())
-      if (exists) {
-        logAndNotify("This bill number already exists. Please use a different number or regenerate a new one.", "error", shopId)
-        return
-      }
-    }
 
     const mobileNameIssues = rows.map((row) => ({
       mobileName: row.description,
@@ -302,7 +190,7 @@ export default function CreateRecordForm({ shopId, isLimitReached, setIsLimitRea
       setRecordTableKey((prev) => prev + 1);
       
       // Generate new bill number for next record
-      generateSequentialBillNumber();
+      generateBillNumber();
     } catch (error) {
       logError("Submit failed", error);
     }
@@ -344,13 +232,7 @@ export default function CreateRecordForm({ shopId, isLimitReached, setIsLimitRea
       {/* Form Section */}
       <div className="space-y-4">
         {customerType === "Customer" ? (
-          <CustomerForm 
-            formData={formData} 
-            setFormData={setFormData} 
-            disabled={isLimitReached} 
-            onBillNumberChange={handleBillNumberChange}
-            onRegenerateBillNumber={generateSequentialBillNumber}
-          />
+          <CustomerForm formData={formData} setFormData={setFormData} disabled={isLimitReached} />
         ) : (
           <DealerForm
             dealers={dealers}
@@ -358,8 +240,6 @@ export default function CreateRecordForm({ shopId, isLimitReached, setIsLimitRea
             setFormData={setFormData}
             disabled={isLimitReached}
             handleCreateDealer={handleCreateDealer}
-            onBillNumberChange={handleBillNumberChange}
-            onRegenerateBillNumber={generateSequentialBillNumber}
           />
         )}
       </div>

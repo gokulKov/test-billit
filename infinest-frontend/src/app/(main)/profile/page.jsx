@@ -1,38 +1,14 @@
 'use client';
 
+
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import ProfilePage from '@/components/Profile/ProfilePage';
 import { jwtDecode } from 'jwt-decode';
 
 export default function AllRecordPage() {
   const [shopId, setShopId] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const router = useRouter();
-
-  // Check if device is mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      
-      // If mobile, redirect to main page - mobile profile is handled in MobileLayout
-      if (mobile) {
-        router.push('/');
-        return;
-      }
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => window.removeEventListener("resize", checkMobile);
-  }, [router]);
 
   useEffect(() => {
-    // Skip token check if mobile (will redirect anyway)
-    if (isMobile) return;
-    
     const token = localStorage.getItem("token");
     if (token) {
       try {
@@ -51,12 +27,7 @@ export default function AllRecordPage() {
     } else {
       window.location.href = "/billit-login";
     }
-  }, [isMobile]);
-
-  // Don't render anything for mobile users (they get redirected)
-  if (isMobile) {
-    return null;
-  }
+  }, []);
 
 
 

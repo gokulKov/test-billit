@@ -1,6 +1,4 @@
 import "../globals.css";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
-import PWAInstaller from "@/components/PWAInstaller";
 
 export const metadata = {
   title: {
@@ -167,9 +165,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="bg-black text-white min-h-screen">
-        <PWAInstaller />
         {children}
-        <PWAInstallPrompt />
       </body>
     </html>
   );

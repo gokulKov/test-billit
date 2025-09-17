@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { PlusCircle, User, Hash, Smartphone, FileText, Wrench, Users, RefreshCw } from "lucide-react"
+import { PlusCircle, User, Hash, Smartphone, FileText, Wrench, Users } from "lucide-react"
 import { logAndNotify, logSuccess } from "@/utils/logger"
 
-export default function DealerForm({ dealers, formData, setFormData, handleCreateDealer, disabled, onBillNumberChange, onRegenerateBillNumber }) {
+export default function DealerForm({ dealers, formData, setFormData, handleCreateDealer, disabled }) {
 
   const handleDealerCreate = async () => {
     // Add validation for dealerName and dealerNumber
@@ -132,26 +132,14 @@ export default function DealerForm({ dealers, formData, setFormData, handleCreat
               <FileText className="h-4 w-4 text-gray-500" />
               Bill Number
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={formData.billNo || ""}
-                placeholder="e.g., DEAL-0001"
-                onChange={(e) => onBillNumberChange(e.target.value)}
-                disabled={disabled}
-                className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-4 py-3 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-              />
-              <button
-                type="button"
-                onClick={onRegenerateBillNumber}
-                disabled={disabled}
-                className="px-3 py-3 bg-green-100 hover:bg-green-200 text-green-700 border border-green-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-green-800 dark:hover:bg-green-700 dark:text-green-200 dark:border-green-600"
-                title="Generate new sequential bill number"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Auto-generated, but editable</p>
+            <input
+              type="text"
+              value={formData.billNo || ""}
+              placeholder="Auto-generated"
+              readOnly
+              disabled={disabled}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-4 py-3 dark:bg-gray-600 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-gray-50"
+            />
           </div>
 
           <div className="space-y-2">

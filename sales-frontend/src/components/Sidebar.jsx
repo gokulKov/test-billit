@@ -48,7 +48,7 @@ function Sidebar({ active = 'bank', onSelect, planId, branchLimit, branchUser })
             <Item id="bank-history" label="Payment History" icon={"📊"} activeId={active} onClick={onSelect} />
             <Item id="instock" label="Inventory" icon={"📦"} activeId={active} onClick={onSelect} />
             <Item id="product-sales" label="Point of Sale" icon={"🛒"} activeId={active} onClick={onSelect} />
-            <Item id="seconds-sales" label="Quick Sales" icon={"⚡"} activeId={active} onClick={onSelect} />
+            <Item id="seconds-sales" label="Second-Hand Sales" icon={"⚡"} activeId={active} onClick={onSelect} />
             <Item id="sales-track" label="Sales Analytics" icon={"📈"} activeId={active} onClick={onSelect} />
             <Item id="branch-expense" label="Expenses" icon={"💸"} activeId={active} onClick={onSelect} />
 

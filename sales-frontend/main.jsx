@@ -285,7 +285,7 @@ function App() {
       case 'product-sales': return 'Point of Sale';
       case 'sales-track': return 'Sales Analytics';
       case 'branch-expense': return 'Expenses';
-      case 'seconds-sales': return 'Quick Sales';
+      case 'seconds-sales': return 'Second-Hand Sales';
       case 'offer': return 'Promotions';
       default: return 'Master Inventory';
     }

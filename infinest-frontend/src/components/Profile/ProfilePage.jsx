@@ -27,15 +27,7 @@ export default function ProfilePage() {
         const res = await authApi.get("/profile/get", {
           headers: { Authorization: `Bearer ${token}` },
         })
-        
-        // Fix imageUrl protocol issues
-        const profileData = res.data
-        if (profileData.imageUrl && profileData.imageUrl.startsWith('http')) {
-          // Replace any https://localhost or https://127.0.0.1 with the correct auth API base URL
-          profileData.imageUrl = profileData.imageUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1):\d+/, process.env.NEXT_PUBLIC_API_URL_AUTH)
-        }
-        
-        setProfile(profileData)
+        setProfile(res.data)
       } catch (err) {
         logError("Error fetching profile", err)
         logSystem("Failed to fetch profile", "WARN");
@@ -65,12 +57,7 @@ export default function ProfilePage() {
       const res = await authApi.post("/upload/profile-image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
-      let newImageUrl = res.data.imageUrl
-      
-      // Fix imageUrl protocol issues
-      if (newImageUrl && newImageUrl.startsWith('http')) {
-        newImageUrl = newImageUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1):\d+/, process.env.NEXT_PUBLIC_API_URL_AUTH)
-      }
+      const newImageUrl = res.data.imageUrl
 
       const token = localStorage.getItem("token")
       await authApi.patch(
